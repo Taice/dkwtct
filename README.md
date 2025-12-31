@@ -2,7 +2,7 @@
 - stands for Dont Know What To Call This
 
 # SETUP:
-- download the binary (or ig you can compile with zig build)
+- download the binary (or you compile with zig build if you have anything other than x86-64)
 
 # USAGE:
 - left click on a key  - input/paste a character on the normal layer (paste using ctrl+v)
