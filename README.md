@@ -1,5 +1,7 @@
 # DKWTCT
 - stands for Dont Know What To Call This
+- used to make xkb layouts easily on linux
+- primarily made with focus on mcsr but can be used for other purposes aswell
 
 # SETUP:
 - download the binary (or compile with zig build if you have anything other than x86-64)
