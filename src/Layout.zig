@@ -120,7 +120,7 @@ const ExportStrError = error{
     NoName,
 };
 pub fn exportStr(ts: *const Layout) ![]const u8 {
-    const name = ts.name orelse return ExportStrError.NoName;
+    const name = ts.name orelse "layout";
     const keys = try std.fmt.bufPrint(&keys_buf, "{f}", .{ts});
     // std.debug.print("keys: {s}\n\n\n\n", .{keys});
     const str = try std.fmt.bufPrint(
