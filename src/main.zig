@@ -162,6 +162,8 @@ pub fn main() !void {
         if (c != 0) {
             if (v.selected_button) |button| {
                 try backend.putCharacterOnKey(button, @intCast(c), v.selected_shift_layer);
+                v.selected_button = null;
+                v.selected_shift_layer = false;
             }
         }
     }
