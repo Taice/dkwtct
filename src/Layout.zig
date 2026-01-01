@@ -22,19 +22,32 @@ pub const Key = struct {
 
 name: ?[]const u8,
 keys: std.StringHashMap(Key),
+to_be_freed: std.ArrayList([]const u8) = .empty,
 
 pub fn init(gpa: Allocator, name: ?[]const u8) Layout {
     return Layout{ .keys = .init(gpa), .name = name };
 }
 
-pub fn clone(ts: *Layout, gpa: Allocator) Layout {
+pub fn clone(ts: *const Layout, gpa: Allocator) !Layout {
+    var keys_clone = try ts.keys.clone();
+    var to_be_freed = std.ArrayList([]const u8).empty;
+    var iter = keys_clone.iterator();
+    while (iter.next()) |entry| {
+        entry.key_ptr.* = try gpa.dupe(u8, entry.key_ptr.*);
+        try to_be_freed.append(gpa, entry.key_ptr.*);
+    }
     return .{
-        .keys = ts.keys.cloneWithAllocator(gpa),
+        .keys = keys_clone,
+        .to_be_freed = to_be_freed,
         .name = ts.name,
     };
 }
-pub fn deinit(ts: *Layout) void {
+pub fn deinit(ts: *Layout, gpa: Allocator) void {
     ts.keys.deinit();
+    for (ts.to_be_freed.items) |t| {
+        gpa.free(t);
+    }
+    ts.to_be_freed.deinit(gpa);
 }
 
 pub const LayoutParseError = error{
@@ -71,6 +84,10 @@ pub fn parse(str: []const u8, gpa: Allocator, name: ?[]const u8) !Layout {
         }
 
         const key = root.getBetween(trimmed, "<>") orelse continue;
+        const owned_key = try gpa.dupe(u8, key);
+        errdefer gpa.free(owned_key);
+
+        try ts.to_be_freed.append(gpa, owned_key);
 
         // the brace thing is just to kinda validate syntax cause like idk it'd be kinda weirdo otherwise i think
         const inside_brackets = root.getBetween(root.getBetween(trimmed, "{}") orelse continue, "[]") orelse continue;
@@ -89,12 +106,12 @@ pub fn parse(str: []const u8, gpa: Allocator, name: ?[]const u8) !Layout {
             if (rhs_cp == lhs_cp) {
                 rhs_cp = null;
             }
-            try ts.keys.put(key, .{ .normal = lhs_cp, .shift_layer = rhs_cp });
+            try ts.keys.put(owned_key, .{ .normal = lhs_cp, .shift_layer = rhs_cp });
             changed = true;
         } else {
             const unicode = root.trim(inside_brackets);
             const cp = stringToCodepoint(unicode) orelse return InvKey;
-            try ts.keys.put(key, .{ .normal = cp });
+            try ts.keys.put(owned_key, .{ .normal = cp });
             changed = true;
         }
     }

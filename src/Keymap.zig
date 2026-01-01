@@ -56,7 +56,6 @@ const Element = union(enum) {
     }
 };
 
-layout: Layout,
 data: std.ArrayList(Element) = .empty,
 
 normalized_dimensions: rl.Vector2 = .{ .x = 0, .y = 0 },
@@ -68,12 +67,11 @@ pub fn clone(ts: *Keymap) Keymap {
 }
 
 pub fn deinit(ts: *Keymap, gpa: Allocator) void {
-    ts.layout.deinit();
     ts.data.deinit(gpa);
 }
 
 pub fn parse(str: []const u8, gpa: Allocator) !Keymap {
-    var keymap = Keymap{ .layout = Layout.init(gpa, null) };
+    var keymap = Keymap{};
 
     const trimmed = root.trim(str);
     var lines_iter = std.mem.splitScalar(u8, trimmed, '\n');
@@ -129,7 +127,7 @@ pub fn format(ts: Keymap, writer: *std.Io.Writer) std.Io.Writer.Error!void {
     }
 }
 
-pub fn renderToFill(ts: *Keymap, dims: rl.Rectangle, focused: bool) !void {
+pub fn renderToFill(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: bool) !void {
     const gap_size = 0;
 
     const n_gaps_h = 12;
@@ -150,7 +148,7 @@ pub fn renderToFill(ts: *Keymap, dims: rl.Rectangle, focused: bool) !void {
                         button_dims = button_dims.getCollision(dims);
                     }
                     var k: ?*Layout.Key = null;
-                    if (ts.layout.keys.getEntry(key.label)) |*entry| {
+                    if (layout.keys.getEntry(key.label)) |*entry| {
                         k = entry.value_ptr;
                     }
                     var colors: ?rlf.Colors = null;
@@ -183,7 +181,7 @@ pub fn renderToFill(ts: *Keymap, dims: rl.Rectangle, focused: bool) !void {
     }
 }
 
-pub fn renderForcedAspectRatio(ts: *Keymap, dims: rl.Rectangle, focused: bool) !void {
+pub fn renderForcedAspectRatio(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: bool) !void {
     const dims_v2 = rl.Vector2.init(dims.width, dims.height);
     const dims_topleft = rl.Vector2.init(dims.x, dims.y);
     const size_vec = dims_v2.divide(ts.normalized_dimensions);
@@ -192,5 +190,5 @@ pub fn renderForcedAspectRatio(ts: *Keymap, dims: rl.Rectangle, focused: bool) !
     const base_coords = dims_v2.subtract(ts.normalized_dimensions.scale(min)).scale(0.5).add(dims_topleft);
     const size = ts.normalized_dimensions.scale(min);
 
-    try ts.renderToFill(.init(base_coords.x, base_coords.y, size.x, size.y), focused);
+    try ts.renderToFill(layout, .init(base_coords.x, base_coords.y, size.x, size.y), focused);
 }

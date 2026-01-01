@@ -159,7 +159,7 @@ pub fn findCpInGlyphs(glyphs: []rl.GlyphInfo, cp: u21) bool {
     return false;
 }
 
-pub fn addLayoutToFont(layout: *Layout, f: *rl.Font, gpa: Allocator) !void {
+pub fn addLayoutToFont(layout: *const Layout, f: *rl.Font, gpa: Allocator) !void {
     var cps = std.ArrayList(i32).empty;
     defer cps.deinit(gpa);
     var iter = layout.keys.valueIterator();

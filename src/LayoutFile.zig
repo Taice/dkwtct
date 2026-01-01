@@ -25,15 +25,21 @@ pub fn init(layout: Layout, name: []const u8, gpa: Allocator) !LayoutFile {
 }
 
 pub fn deinit(ts: *LayoutFile, gpa: Allocator) void {
+    for (ts.layouts.items) |*lay| {
+        lay.deinit(gpa);
+    }
     ts.layouts.deinit(gpa);
+    for (ts.names.items) |name| {
+        gpa.free(name);
+    }
     ts.names.deinit(gpa);
     gpa.free(ts.file_path);
 }
 
 pub fn writeToFile(ts: *const LayoutFile, file: std.fs.File, gpa: std.mem.Allocator) !void {
-    const str = try ts.exportStr(gpa);
-    defer gpa.free(str);
-    return file.writeAll(str);
+    var str = try ts.exportStr(gpa);
+    defer str.deinit(gpa);
+    return file.writeAll(str.items);
 }
 
 pub fn writeToFilePath(ts: *const LayoutFile, file_path: []const u8, gpa: std.mem.Allocator) !void {
@@ -59,14 +65,15 @@ pub fn write(ts: *const LayoutFile, gpa: std.mem.Allocator) !void {
 
 pub fn loadFromFile(file: std.fs.File, name: []const u8, io: std.Io, gpa: Allocator) !LayoutFile {
     var reader = file.reader(io, &buf);
-    const file_data = try reader.interface.allocRemaining(gpa, @enumFromInt(1048576));
+    const file_data = try reader.interface.allocRemaining(gpa, .limited(1048576));
+    defer gpa.free(file_data);
 
     const owned = try gpa.dupe(u8, name);
 
-    const l = try findLayoutsInString(file_data, gpa);
+    const layouts, const names = try findLayoutsInString(file_data, gpa);
     return LayoutFile{
-        .layouts = l.@"0",
-        .names = l.@"1",
+        .layouts = layouts,
+        .names = names,
         .file_path = owned,
     };
 }
@@ -84,14 +91,14 @@ pub fn loadFromFilePath(file_path: []const u8, io: std.Io, gpa: Allocator) !Layo
     return loadFromFile(file, file_path, io, gpa);
 }
 
-pub fn exportStr(ts: *const LayoutFile, gpa: Allocator) ![]const u8 {
+pub fn exportStr(ts: *const LayoutFile, gpa: Allocator) !std.ArrayList(u8) {
     var str = std.ArrayList(u8).empty;
     for (ts.layouts.items) |layout| {
         const layout_string = try layout.exportStr();
         try str.appendSlice(gpa, layout_string);
         try str.append(gpa, '\n');
     }
-    return str.items;
+    return str;
 }
 
 pub fn findLayoutsInString(string: []const u8, gpa: Allocator) !struct { std.ArrayList(Layout), std.ArrayList([]const u8) } {
@@ -107,8 +114,10 @@ pub fn findLayoutsInString(string: []const u8, gpa: Allocator) !struct { std.Arr
             const closed_bracket = getMatchingPair(string, newline, "{}") orelse continue;
 
             var layout = Layout.parse(string[newline..closed_bracket], gpa, name) catch continue;
-            layout.name = name;
-            try names.append(gpa, try gpa.dupe(u8, name));
+            errdefer layout.deinit(gpa);
+            const owned = try gpa.dupe(u8, name);
+            layout.name = owned;
+            try names.append(gpa, owned);
             try layouts.append(gpa, layout);
             i = closed_bracket;
         }
