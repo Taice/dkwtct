@@ -27,9 +27,6 @@ pub fn main() !void {
     v.font = try rl.loadFontFromMemory(".ttf", v.font_data, v.fs, null);
     rl.setTextureFilter(v.font.texture, .bilinear);
 
-    var threaded = std.Io.Threaded.init_single_threaded;
-    const io = threaded.io();
-
     const is_debug = @import("builtin").mode == .Debug;
     var debug_alloc = std.heap.DebugAllocator(.{}).init;
     defer if (is_debug) std.debug.print("{any}\n", .{debug_alloc.deinit()});
@@ -84,11 +81,11 @@ pub fn main() !void {
                 const variant = root.trim(variant_box.text.items);
 
                 if (is_saving) {
-                    backend.saveLayoutNameVariant(layout, variant, io, gpa) catch |e| {
+                    backend.saveLayoutNameVariant(layout, variant, gpa) catch |e| {
                         std.debug.print("Error while saving layout: {any}\n", .{e});
                     };
                 } else b: {
-                    backend.importLayoutNameVariant(layout, variant, io, gpa) catch |e| {
+                    backend.importLayoutNameVariant(layout, variant, gpa) catch |e| {
                         std.debug.print("Error while importing layout: {any}\n", .{e});
                         break :b;
                     };

@@ -95,7 +95,7 @@ pub fn parse(str: []const u8, gpa: Allocator, name: ?[]const u8) !Layout {
         errdefer std.debug.print("invalid_key: {s}\n\n", .{line});
 
         const InvKey = LayoutParseError.InvalidKey;
-        if (std.mem.findScalar(u8, inside_brackets, ',')) |comma_idx| {
+        if (std.mem.indexOfScalar(u8, inside_brackets, ',')) |comma_idx| {
             const lhs = root.trim(inside_brackets[0..comma_idx]);
             const rhs = root.trim(inside_brackets[comma_idx + 1 ..]);
 
