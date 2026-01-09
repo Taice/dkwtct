@@ -18,7 +18,7 @@ current_file: ?@import("LayoutFile.zig") = null,
 layout: *Layout,
 
 pub fn init(gpa: Allocator) !Backend {
-    var backend = Backend{
+    const backend = Backend{
         .layout = try gpa.create(Layout),
     };
     backend.layout.* = .init(gpa, null);
@@ -34,8 +34,8 @@ pub fn deinit(ts: *Backend, gpa: Allocator) void {
     }
 }
 
-pub fn saveLayoutNameVariant(ts: *Backend, name: []const u8, variant: []const u8, io: std.Io, gpa: Allocator) !void {
-    var file = LayoutFile.loadFromName(name, io, gpa) catch |e| {
+pub fn saveLayoutNameVariant(ts: *Backend, name: []const u8, variant: []const u8, gpa: Allocator) !void {
+    var file = LayoutFile.loadFromName(name, gpa) catch |e| {
         switch (e) {
             std.fs.File.OpenError.FileNotFound => {
                 var file = try LayoutFile.init(ts.layout.*, name, gpa);
@@ -87,8 +87,8 @@ const ImportLayoutError = error{
     NoLayout,
 };
 
-pub fn importLayoutNameVariant(ts: *Backend, layout_name: []const u8, variant: []const u8, io: std.Io, gpa: Allocator) !void {
-    var file = try LayoutFile.loadFromName(layout_name, io, gpa);
+pub fn importLayoutNameVariant(ts: *Backend, layout_name: []const u8, variant: []const u8, gpa: Allocator) !void {
+    var file = try LayoutFile.loadFromName(layout_name, gpa);
     errdefer file.deinit(gpa);
     var found = false;
     for (file.layouts.items) |*l| {

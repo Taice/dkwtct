@@ -2,11 +2,10 @@ const Layout = @This();
 
 const std = @import("std");
 const root = @import("dkwtct");
-const rl = @import("raylib");
+const RaylibBackend = @import("rl");
+const rl = RaylibBackend.raylib;
 const rlf = @import("raylib_functions.zig");
 const uc = @import("unicode.zig");
-
-const OwningStringHashmap = @import("owning_string_hashmap.zig").OwningStringHashmap;
 
 const stringmap = @import("keysym_string_map.zig").keysym_string_map;
 
@@ -95,7 +94,7 @@ pub fn parse(str: []const u8, gpa: Allocator, name: ?[]const u8) !Layout {
         errdefer std.debug.print("invalid_key: {s}\n\n", .{line});
 
         const InvKey = LayoutParseError.InvalidKey;
-        if (std.mem.findScalar(u8, inside_brackets, ',')) |comma_idx| {
+        if (std.mem.indexOfScalar(u8, inside_brackets, ',')) |comma_idx| {
             const lhs = root.trim(inside_brackets[0..comma_idx]);
             const rhs = root.trim(inside_brackets[comma_idx + 1 ..]);
 

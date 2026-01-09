@@ -53,7 +53,7 @@ pub fn writeToFilePath(ts: *const LayoutFile, file_path: []const u8, gpa: std.me
 pub fn makeDirAll(dir: []const u8) void {
     var idx: usize = 1;
     while (true) {
-        const slash = std.mem.findScalarPos(u8, dir, idx, '/') orelse break;
+        const slash = std.mem.indexOfScalarPos(u8, dir, idx, '/') orelse break;
         idx = slash + 1;
         std.fs.makeDirAbsolute(dir[0..slash]) catch {};
     }
@@ -63,8 +63,8 @@ pub fn write(ts: *const LayoutFile, gpa: std.mem.Allocator) !void {
     return ts.writeToFilePath(ts.file_path, gpa);
 }
 
-pub fn loadFromFile(file: std.fs.File, name: []const u8, io: std.Io, gpa: Allocator) !LayoutFile {
-    var reader = file.reader(io, &buf);
+pub fn loadFromFile(file: std.fs.File, name: []const u8, gpa: Allocator) !LayoutFile {
+    var reader = file.reader(&buf);
     const file_data = try reader.interface.allocRemaining(gpa, .limited(1048576));
     defer gpa.free(file_data);
 
@@ -78,17 +78,17 @@ pub fn loadFromFile(file: std.fs.File, name: []const u8, io: std.Io, gpa: Alloca
     };
 }
 
-pub fn loadFromName(layout: []const u8, io: std.Io, gpa: Allocator) !LayoutFile {
+pub fn loadFromName(layout: []const u8, gpa: Allocator) !LayoutFile {
     const file_path = try getPath(layout, gpa);
     defer gpa.free(file_path);
 
-    return loadFromFilePath(file_path, io, gpa);
+    return loadFromFilePath(file_path, gpa);
 }
 
-pub fn loadFromFilePath(file_path: []const u8, io: std.Io, gpa: Allocator) !LayoutFile {
+pub fn loadFromFilePath(file_path: []const u8, gpa: Allocator) !LayoutFile {
     const file = try std.fs.openFileAbsolute(file_path, .{});
     defer file.close();
-    return loadFromFile(file, file_path, io, gpa);
+    return loadFromFile(file, file_path, gpa);
 }
 
 pub fn exportStr(ts: *const LayoutFile, gpa: Allocator) !std.ArrayList(u8) {
@@ -108,7 +108,7 @@ pub fn findLayoutsInString(string: []const u8, gpa: Allocator) !struct { std.Arr
     while (i < string.len - 12) : (i += 1) {
         if (std.mem.eql(u8, string[i .. i + 12], "\nxkb_symbols")) {
             const name = root.getBetween(string[i + 12 ..], "\"\"") orelse continue;
-            const newline = std.mem.findScalarPos(u8, string, i + 12, '\n') orelse continue;
+            const newline = std.mem.indexOfScalarPos(u8, string, i + 12, '\n') orelse continue;
 
             // can use newline because this function doesn't check the first character and jsut assume that the bracket is somewhere in this line
             const closed_bracket = getMatchingPair(string, newline, "{}") orelse continue;

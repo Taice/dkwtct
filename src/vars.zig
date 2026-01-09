@@ -1,5 +1,7 @@
 const std = @import("std");
-const rl = @import("raylib");
+
+const RaylibBackend = @import("rl");
+const rl = RaylibBackend.raylib;
 
 pub const keymap_str = @embedFile("layout.dkwtct");
 pub const font_data = @embedFile("MPLUSRounded1c-Regular.ttf");

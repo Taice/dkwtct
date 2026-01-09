@@ -1,5 +1,6 @@
 const std = @import("std");
-const rl = @import("raylib");
+const RaylibBackend = @import("rl");
+const rl = RaylibBackend.raylib;
 
 const v = @import("vars.zig");
 

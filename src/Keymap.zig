@@ -6,7 +6,8 @@ const root = @import("dkwtct");
 const v = @import("vars.zig");
 
 const Layout = @import("Layout.zig");
-const rl = @import("raylib");
+const RaylibBackend = @import("rl");
+const rl = RaylibBackend.raylib;
 const rlf = @import("raylib_functions.zig");
 const Allocator = std.mem.Allocator;
 
@@ -37,7 +38,7 @@ const Element = union(enum) {
             }
         }
 
-        const sep_i = std.mem.findScalar(u8, str, ':') orelse return ElementParseError.NoSep;
+        const sep_i = std.mem.indexOfScalar(u8, str, ':') orelse return ElementParseError.NoSep;
         if (sep_i + 1 >= str.len) {
             return ElementParseError.NoSep;
         }
