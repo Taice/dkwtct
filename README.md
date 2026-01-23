@@ -8,8 +8,8 @@
 
 # USAGE:
 - left click on a key  - input/paste a character on the normal layer (paste using ctrl+v)
-- right click on a key - input/paste a character on the shift layer 
-- left/right click and esc to clear the key from the corresponding layer
+- use tab/shift+tab to cycle between layer
+- esc to clear the key from the corresponding layer
 - ctrl+shift+s to save layout to specified location <BR>
 note: <BR>
 in the save/load menu the top thing is the layout and the bottom is the variant
