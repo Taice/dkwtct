@@ -4,7 +4,7 @@ const std = @import("std");
 const root = @import("dkwtct");
 const rl = @import("raylib");
 const rlf = @import("raylib_functions.zig");
-const uc = @import("unicode.zig");
+const unicode = @import("unicode.zig");
 
 const OwningStringHashmap = @import("owning_string_hashmap.zig").OwningStringHashmap;
 
@@ -16,8 +16,10 @@ pub var export_buf: [12288]u8 = undefined;
 pub var keys_buf: [4096]u8 = undefined;
 
 pub const Key = struct {
-    normal: u21,
-    shift_layer: ?u21 = null,
+    normal: u21 = 0,
+    shift: ?u21 = null,
+    alt: u21 = 0,
+    alt_shift: ?u21 = null,
 };
 
 name: ?[]const u8,
@@ -60,7 +62,7 @@ fn stringToCodepoint(string: []const u8) ?u21 {
         return string[0];
     }
 
-    if (uc.parseHexUnicode(string)) |u| {
+    if (unicode.parseHexUnicode(string)) |u| {
         return u;
     } else |_| {}
 
@@ -73,6 +75,7 @@ fn stringToCodepoint(string: []const u8) ?u21 {
 
 pub fn parse(str: []const u8, gpa: Allocator, name: ?[]const u8) !Layout {
     var ts = Layout.init(gpa, name);
+    errdefer ts.deinit(gpa);
     var split_iter = std.mem.splitScalar(u8, str, '\n');
 
     var changed = false;
@@ -85,35 +88,52 @@ pub fn parse(str: []const u8, gpa: Allocator, name: ?[]const u8) !Layout {
 
         const key = root.getBetween(trimmed, "<>") orelse continue;
         const owned_key = try gpa.dupe(u8, key);
-        errdefer gpa.free(owned_key);
 
         try ts.to_be_freed.append(gpa, owned_key);
 
         // the brace thing is just to kinda validate syntax cause like idk it'd be kinda weirdo otherwise i think
         const inside_brackets = root.getBetween(root.getBetween(trimmed, "{}") orelse continue, "[]") orelse continue;
 
-        errdefer std.debug.print("invalid_key: {s}\n\n", .{line});
-
         const InvKey = LayoutParseError.InvalidKey;
-        if (std.mem.indexOfScalar(u8, inside_brackets, ',')) |comma_idx| {
-            const lhs = root.trim(inside_brackets[0..comma_idx]);
-            const rhs = root.trim(inside_brackets[comma_idx + 1 ..]);
 
-            const lhs_cp = stringToCodepoint(lhs) orelse return InvKey;
-
-            var rhs_cp: ?u21 = stringToCodepoint(rhs) orelse return InvKey;
-
-            if (rhs_cp == lhs_cp) {
-                rhs_cp = null;
-            }
-            try ts.keys.put(owned_key, .{ .normal = lhs_cp, .shift_layer = rhs_cp });
-            changed = true;
+        var k = Layout.Key{};
+        var iter = std.mem.splitScalar(u8, inside_brackets, ',');
+        const normal = iter.next();
+        if (normal) |x| {
+            const s = root.trim(x);
+            const cp = stringToCodepoint(s) orelse continue;
+            k.normal = cp;
         } else {
-            const unicode = root.trim(inside_brackets);
-            const cp = stringToCodepoint(unicode) orelse return InvKey;
-            try ts.keys.put(owned_key, .{ .normal = cp });
-            changed = true;
+            return InvKey;
         }
+        const shift = iter.next();
+        if (shift) |x| {
+            const s = root.trim(x);
+            const cp = stringToCodepoint(s) orelse continue;
+            k.shift = cp;
+        }
+        const alt = iter.next();
+        if (alt) |x| {
+            const s = root.trim(x);
+            const cp = stringToCodepoint(s) orelse continue;
+            k.alt = cp;
+        }
+        const alt_shift = iter.next();
+        if (alt_shift) |x| {
+            const s = root.trim(x);
+            const cp = stringToCodepoint(s) orelse continue;
+            k.alt_shift = cp;
+        }
+
+        if (k.normal == k.shift) {
+            k.shift = null;
+        }
+        if (k.alt == k.alt_shift) {
+            k.alt_shift = null;
+        }
+
+        changed = true;
+        try ts.keys.put(owned_key, k);
     }
     if (!changed) return LayoutParseError.NoKeys;
     return ts;
@@ -123,11 +143,13 @@ pub fn format(ts: Layout, writer: *std.Io.Writer) std.Io.Writer.Error!void {
     var iter = ts.keys.iterator();
     while (iter.next()) |entry| {
         try writer.print(
-            "    key <{s}> {{ [ {s}, {s} ] }};\n",
+            "    key <{s}> {{ [ {s}, {s}, {s}, {s} ] }};\n",
             .{
                 entry.key_ptr.*,
-                &uc.codepointToUnicode(entry.value_ptr.normal),
-                &uc.codepointToUnicode(entry.value_ptr.shift_layer orelse entry.value_ptr.normal),
+                &unicode.codepointToUnicode(entry.value_ptr.normal),
+                &unicode.codepointToUnicode(entry.value_ptr.shift orelse entry.value_ptr.normal),
+                &unicode.codepointToUnicode(entry.value_ptr.alt),
+                &unicode.codepointToUnicode(entry.value_ptr.alt_shift orelse entry.value_ptr.alt),
             },
         );
     }
@@ -146,6 +168,7 @@ pub fn exportStr(ts: *const Layout) ![]const u8 {
         \\xkb_symbols "{s}" {{
         \\    name[Group1] = "{s} search crafting.";
         \\
+        \\    key <RALT> {{[  ISO_Level3_Shift  ], type[group1]="ONE_LEVEL" }};
         \\{s}}};
         \\
     ,
@@ -165,3 +188,60 @@ const Range = struct {
     from: usize,
     to: usize,
 };
+
+pub const LayerEnum = enum(u8) {
+    normal = 0,
+    shift = 1,
+    alt = 2,
+    alt_shift = 3,
+
+    pub fn cycle(ts: *LayerEnum) void {
+        const numeral: u8 = @intFromEnum(ts.*);
+        ts.* = if (numeral >= 3) .normal else @enumFromInt(numeral + 1);
+    }
+
+    pub fn cycleBack(ts: *LayerEnum) void {
+        const numeral: u8 = @intFromEnum(ts.*);
+        ts.* = if (numeral <= 0) .alt_shift else @enumFromInt(numeral - 1);
+    }
+};
+
+const PasteCharacterError = error{
+    InvalidLength,
+    InvalidUnicode,
+};
+
+pub fn pasteCharacter(ts: *Layout, key: []const u8, text: []const u8, layer: LayerEnum) !u21 {
+    if (try std.unicode.utf8ByteSequenceLength(text[0]) != text.len) return PasteCharacterError.InvalidLength; // ensure single utf-8 codepoint
+    const uc = std.unicode.utf8Decode(text[0..text.len]) catch return PasteCharacterError.InvalidUnicode;
+    try ts.putCharacterOnKey(key, uc, layer);
+    return uc;
+}
+
+pub fn putCharacterOnKey(ts: *Layout, key: []const u8, cp: u21, layer: LayerEnum) !void {
+    const gop = try ts.keys.getOrPut(key);
+    var ptr = gop.value_ptr;
+    if (!gop.found_existing) {
+        ptr.* = .{};
+    }
+    switch (layer) {
+        .shift => ptr.shift = cp,
+        .normal => ptr.normal = cp,
+        .alt => ptr.alt = cp,
+        .alt_shift => ptr.alt_shift = cp,
+    }
+}
+
+pub fn clearKey(ts: *Layout, key: []const u8, layer: LayerEnum) void {
+    if (ts.keys.getPtr(key)) |ptr| {
+        switch (layer) {
+            .shift => ptr.shift = null,
+            .alt_shift => ptr.alt_shift = null,
+            .normal => ptr.normal = 0,
+            .alt => ptr.alt = 0,
+        }
+        if (ptr.alt == 0 and ptr.normal == 0 and ptr.shift == null and ptr.alt_shift == null) { // if the key is blank
+            _ = ts.keys.remove(key);
+        }
+    }
+}

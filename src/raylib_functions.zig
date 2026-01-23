@@ -6,6 +6,7 @@ const v = @import("vars.zig");
 const uc = @import("unicode.zig");
 
 const Layout = @import("Layout.zig");
+const Backend = @import("Backend.zig");
 const Allocator = std.mem.Allocator;
 
 pub fn innerRec(rec: rl.Rectangle, thick: f32) rl.Rectangle {
@@ -44,15 +45,15 @@ pub const Colors = struct {
 };
 
 pub fn fromInt(int: u32) rl.Color {
-    const r = (int & 0xFF000000) >> 24;
-    const g = (int & 0x00FF0000) >> 16;
-    const b = (int & 0x0000FF00) >> 8;
-    const a = int & 0x000000FF;
+    const r: u8 = @intCast((int & 0xFF000000) >> 24);
+    const g: u8 = @intCast((int & 0x00FF0000) >> 16);
+    const b: u8 = @intCast((int & 0x0000FF00) >> 8);
+    const a: u8 = @intCast(int & 0x000000FF);
 
     return rl.Color{ .r = r, .g = g, .b = b, .a = a };
 }
 
-pub fn renderButton(key: ?*Layout.Key, dims: rl.Rectangle, optional_colors: ?Colors, focused: bool) ?rl.MouseButton {
+pub fn renderButton(key: ?*Layout.Key, dims: rl.Rectangle, optional_colors: ?Colors, layer: Layout.LayerEnum, focused: bool) ?rl.MouseButton {
     const is_hovering = rl.checkCollisionPointRec(rl.getMousePosition(), dims) and focused;
     const is_held = rl.isMouseButtonDown(.left) or rl.isMouseButtonDown(.right);
 
@@ -71,17 +72,21 @@ pub fn renderButton(key: ?*Layout.Key, dims: rl.Rectangle, optional_colors: ?Col
     rl.drawRectangleLinesEx(dims, 2, colors.border_color);
     rl.drawRectangleRec(inner, colors.background_color);
     if (key) |k| {
-        var c = switch (k.normal) {
-            0 => ' ',
-            ' ' => '_',
-            else => |x| x,
+        var c = switch (layer) {
+            .normal => k.normal,
+            .shift => k.shift orelse k.normal,
+            .alt => k.alt,
+            .alt_shift => k.alt_shift orelse k.alt,
         };
-        const topleft = rl.Rectangle.init(inner.x, inner.y, inner.width * 0.66, inner.height * 0.66);
-        drawCodepointCentered(c, topleft, colors.text_color);
-        if (k.shift_layer) |sl| {
-            c = if (sl == ' ') '_' else sl;
-            const botright = rl.Rectangle.init(inner.x + topleft.width, inner.y + topleft.height, inner.width * 0.33, inner.height * 0.33);
-            drawCodepointCentered(c, botright, colors.shift_layer_color);
+        if (c != 0) {
+            if (c == ' ') {
+                c = '_';
+            }
+            if ((layer == .shift and k.shift == null) or (layer == .alt_shift and k.alt_shift == null)) {
+                drawCodepointCentered(c, inner, fromInt(0x00000077));
+            } else {
+                drawCodepointCentered(c, inner, colors.text_color);
+            }
         }
     }
 
@@ -170,7 +175,7 @@ pub fn addLayoutToFont(layout: *const Layout, f: *rl.Font, gpa: Allocator) !void
                 try cps.append(gpa, cp);
             }
         }
-        if (key.shift_layer) |cp| {
+        if (key.shift) |cp| {
             if (!fontHasCodepoint(f, cp) and !root.exists(i32, cps.items, cp)) {
                 try cps.append(gpa, cp);
             }

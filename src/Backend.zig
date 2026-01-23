@@ -112,44 +112,6 @@ pub fn importLayoutNameVariant(ts: *Backend, layout_name: []const u8, variant: [
     return ImportLayoutError.NoLayout;
 }
 
-pub fn clearShiftLayer(ts: *Backend, key: []const u8) void {
-    if (ts.layout.keys.getPtr(key)) |ptr| {
-        ptr.shift_layer = null;
-    }
-}
-
-pub fn clearNormalLayer(ts: *Backend, key: []const u8) void {
-    if (ts.layout.keys.getPtr(key)) |ptr| {
-        if (ptr.shift_layer != null) {
-            ptr.normal = 0;
-        } else {
-            _ = ts.layout.keys.remove(key);
-        }
-    }
-}
-
-const PasteCharacterError = error{
-    InvalidLength,
-    InvalidUnicode,
-};
-
-pub fn pasteCharacter(ts: *Backend, key: []const u8, text: []const u8, shift_layer: bool) !u21 {
-    if (try std.unicode.utf8ByteSequenceLength(text[0]) != text.len) return PasteCharacterError.InvalidLength; // ensure single utf-8 codepoint
-    const gop = try ts.layout.keys.getOrPut(key);
-    if (!gop.found_existing) {
-        gop.value_ptr.shift_layer = null;
-        gop.value_ptr.normal = 0;
-    }
-    const uc = std.unicode.utf8Decode(text[0..text.len]) catch return PasteCharacterError.InvalidUnicode;
-    if (shift_layer) {
-        gop.value_ptr.shift_layer = uc;
-    } else {
-        gop.value_ptr.normal = uc;
-    }
-
-    return uc;
-}
-
 pub fn resetLayout(ts: *Backend, gpa: Allocator) !void {
     if (ts.current_file) |*f| {
         f.deinit(gpa);
@@ -162,20 +124,7 @@ pub fn resetLayout(ts: *Backend, gpa: Allocator) !void {
 }
 
 pub fn trySavingLayout(ts: *Backend, gpa: Allocator) !bool {
-    const file = &(ts.current_file orelse return false);
+    const file = ts.current_file orelse return false;
     try file.write(gpa);
     return true;
-}
-
-pub fn putCharacterOnKey(ts: *Backend, key: []const u8, rune: u21, shift_layer: bool) !void {
-    const gop = try ts.layout.keys.getOrPut(key);
-    if (!gop.found_existing) {
-        gop.value_ptr.shift_layer = null;
-        gop.value_ptr.normal = 0;
-    }
-    if (shift_layer) {
-        gop.value_ptr.shift_layer = rune;
-    } else {
-        gop.value_ptr.normal = rune;
-    }
 }

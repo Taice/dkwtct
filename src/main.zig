@@ -98,14 +98,17 @@ pub fn main() !void {
             const keybind = rlf.isKeybindPressed;
             if (keybind("escape")) {
                 if (v.selected_button) |btn| {
-                    if (v.selected_shift_layer) {
-                        backend.clearShiftLayer(btn);
-                    } else {
-                        backend.clearNormalLayer(btn);
-                    }
+                    backend.layout.clearKey(btn, v.selected_layer);
                     v.selected_button = null;
                 } else {
                     is_paused = true;
+                }
+            }
+            if (keybind("tab")) {
+                if (rl.isKeyDown(.left_shift) or rl.isKeyDown(.right_shift)) {
+                    v.selected_layer.cycleBack();
+                } else {
+                    v.selected_layer.cycle();
                 }
             }
             if (keybind("ctrl+c")) {
@@ -114,14 +117,11 @@ pub fn main() !void {
             }
             if (keybind("ctrl+v")) c: {
                 const cstr = rl.getClipboardText();
-                if (cstr.len == 0) break :c;
+                if (cstr[0] == 0 or cstr.len == 0) break :c;
                 const cb = root.fatten(cstr);
                 if (v.selected_button) |button| b: {
-                    const sl = v.selected_shift_layer;
-
                     v.selected_button = null;
-                    v.selected_shift_layer = false;
-                    const uc = backend.pasteCharacter(button, cb[0..cb.len], sl) catch |e| {
+                    const uc = backend.layout.pasteCharacter(button, cb[0..cb.len], v.selected_layer) catch |e| {
                         std.debug.print("Error while pasting characters: {any}\n", .{e});
                         break :b;
                     };
@@ -155,12 +155,19 @@ pub fn main() !void {
                 }
             }
         }
+        const text = switch (v.selected_layer) {
+            .alt => "alt layer",
+            .alt_shift => "alt-shift layer",
+            .normal => "normal layer",
+            .shift => "shift layer",
+        };
+
+        rl.drawText(text, 0, 0, 20, rlf.fromInt(0x88888888));
         const c = rl.getCharPressed();
         if (c != 0) {
             if (v.selected_button) |button| {
-                try backend.putCharacterOnKey(button, @intCast(c), v.selected_shift_layer);
                 v.selected_button = null;
-                v.selected_shift_layer = false;
+                try backend.layout.putCharacterOnKey(button, @intCast(c), v.selected_layer);
             }
         }
     }
