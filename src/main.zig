@@ -168,6 +168,10 @@ pub fn main() !void {
             if (v.selected_button) |button| {
                 v.selected_button = null;
                 try backend.layout.putCharacterOnKey(button, @intCast(c), v.selected_layer);
+                if (!rlf.fontHasCodepoint(&v.font, @intCast(c))) {
+                    try rlf.addCodepointToFont(&v.font, @intCast(c), std.heap.c_allocator);
+                    std.debug.print("{u}\n", .{@as(u21, @intCast(c))});
+                }
             }
         }
     }
