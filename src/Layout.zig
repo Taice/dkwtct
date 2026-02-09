@@ -6,8 +6,6 @@ const rl = @import("raylib");
 const rlf = @import("raylib_functions.zig");
 const unicode = @import("unicode.zig");
 
-const OwningStringHashmap = @import("owning_string_hashmap.zig").OwningStringHashmap;
-
 const stringmap = @import("keysym_string_map.zig").keysym_string_map;
 
 const Allocator = std.mem.Allocator;
