@@ -23,7 +23,7 @@ const Element = union(enum) {
         NoSep,
         InvalidChar,
     };
-    pub fn parse(str: []const u8) ElementParseError!Element {
+    pub fn parse(str: []const u8, gpa: std.mem.Allocator) !Element {
         // validation check
         for (str) |char| {
             switch (char) {
@@ -50,7 +50,7 @@ const Element = union(enum) {
         return Element{
             .key = Key{
                 .width = rhs_parsed,
-                .label = lhs,
+                .label = try gpa.dupe(u8, lhs),
             },
         };
     }
@@ -67,11 +67,20 @@ pub fn clone(ts: *Keymap) Keymap {
 }
 
 pub fn deinit(ts: *Keymap, gpa: Allocator) void {
+    for (ts.data.items) |e| {
+        switch (e) {
+            .key => |k| {
+                gpa.free(k.label);
+            },
+            else => {},
+        }
+    }
     ts.data.deinit(gpa);
 }
 
 pub fn parse(str: []const u8, gpa: Allocator) !Keymap {
     var keymap = Keymap{};
+    errdefer keymap.deinit(gpa);
 
     const trimmed = root.trim(str);
     var lines_iter = std.mem.splitScalar(u8, trimmed, '\n');
@@ -85,7 +94,7 @@ pub fn parse(str: []const u8, gpa: Allocator) !Keymap {
             if (element_str.len == 0) {
                 continue;
             }
-            const element = try Element.parse(element_str);
+            const element = try Element.parse(element_str, gpa);
             try keymap.data.append(gpa, element);
 
             switch (element) {

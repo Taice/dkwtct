@@ -5,6 +5,8 @@ const rl = @import("raylib");
 const rg = @import("raygui");
 const rlf = @import("raylib_functions.zig");
 
+const config_file = @import("config_file.zig");
+
 const v = @import("vars.zig");
 
 const Allocator = std.mem.Allocator;
@@ -15,6 +17,9 @@ const LayoutFile = @import("LayoutFile.zig");
 const Textbox = @import("Textbox.zig");
 const Backend = @import("Backend.zig");
 
+pub const default_keymap_str = @embedFile("keymap.dkwtct");
+pub const font_data = @embedFile("MPLUSRounded1c-Regular.ttf");
+
 pub fn main() !void {
     rl.setConfigFlags(.{ .window_resizable = true });
     rl.initWindow(500, 500, "dkwtct");
@@ -24,7 +29,7 @@ pub fn main() !void {
 
     v.program_start = try .now();
 
-    v.font = try rl.loadFontFromMemory(".ttf", v.font_data, v.fs, null);
+    v.font = try rl.loadFontFromMemory(".ttf", font_data, v.fs, null);
     rl.setTextureFilter(v.font.texture, .bilinear);
 
     const is_debug = @import("builtin").mode == .Debug;
@@ -36,7 +41,18 @@ pub fn main() !void {
     var backend = try Backend.init(gpa);
     defer backend.deinit(gpa);
 
-    var keymap = try Keymap.parse(v.keymap_str, gpa);
+    var keymap: Keymap = undefined;
+    if (config_file.getKeymapFile(gpa, default_keymap_str)) |f| {
+        if (f) |file_contents| {
+            keymap = Keymap.parse(file_contents, gpa) catch try Keymap.parse(default_keymap_str, gpa);
+            std.debug.print("\n\n{s}\n", .{file_contents});
+            gpa.free(file_contents);
+        } else {
+            keymap = try Keymap.parse(default_keymap_str, gpa);
+        }
+    } else |_| {
+        keymap = try Keymap.parse(default_keymap_str, gpa);
+    }
     defer keymap.deinit(gpa);
 
     var is_paused = false;
@@ -162,14 +178,35 @@ pub fn main() !void {
             }
         }
 
-        const c = rl.getCharPressed();
-        if (c != 0) {
-            if (v.selected_button) |button| {
-                v.selected_button = null;
-                try backend.layout.putCharacterOnKey(button, @intCast(c), v.selected_layer);
-                if (!rlf.fontHasCodepoint(&v.font, @intCast(c))) {
-                    try rlf.addCodepointToFont(&v.font, @intCast(c), gpa);
-                    std.debug.print("{u}\n", .{@as(u21, @intCast(c))});
+        {
+            const c = rl.getCharPressed();
+            if (c != 0) {
+                if (v.selected_button) |button| {
+                    v.selected_button = null;
+                    try backend.layout.putCharacterOnKey(button, @intCast(c), v.selected_layer);
+                    if (!rlf.fontHasCodepoint(&v.font, @intCast(c))) {
+                        try rlf.addCodepointToFont(&v.font, @intCast(c), gpa);
+                        std.debug.print("{u}\n", .{@as(u21, @intCast(c))});
+                    }
+                }
+            }
+        }
+
+        if (rl.isKeyPressed(.backspace)) {
+            const c = 1;
+            if (c != 0) {
+                if (v.selected_button) |button| {
+                    v.selected_button = null;
+                    try backend.layout.putCharacterOnKey(button, @intCast(c), v.selected_layer);
+                }
+            }
+        }
+        if (rl.isKeyPressed(.home)) {
+            const c = 2;
+            if (c != 0) {
+                if (v.selected_button) |button| {
+                    v.selected_button = null;
+                    try backend.layout.putCharacterOnKey(button, @intCast(c), v.selected_layer);
                 }
             }
         }

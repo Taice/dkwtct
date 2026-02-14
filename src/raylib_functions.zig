@@ -129,6 +129,35 @@ pub fn addCodepointToFont(
 }
 
 pub fn drawCodepointCentered(cp: u21, dims: rl.Rectangle, color: rl.Color) void {
+    // backspace specialization
+    if (cp == 1) {
+        const topleft = rl.Vector2.init(dims.x, dims.y);
+        const size = rl.Vector2.init(dims.width, dims.height);
+        const text_dims = rl.Vector2.init(rl.measureTextEx(v.font, "BS", @round(dims.height), 0).x, size.y);
+        const offset_non_rounded = size.subtract(text_dims).scale(0.5);
+        const offset = rl.Vector2.init(@round(offset_non_rounded.x), @round(offset_non_rounded.y));
+        rl.drawTextEx(v.font, "BS", topleft.add(offset), @round(dims.height), 0, color);
+        return;
+    }
+    // home specialization
+    if (cp == 2) {
+        const topleft = rl.Vector2.init(dims.x, dims.y);
+        const size = rl.Vector2.init(dims.width, dims.height);
+        const text_dims = rl.Vector2.init(rl.measureTextEx(v.font, "Home", @round(dims.height), 0).x, size.y);
+        if (text_dims.x > dims.width) {
+            const scale = dims.width / text_dims.x;
+
+            const offset_non_rounded = size.subtract(text_dims.scale(scale)).scale(0.5);
+            const offset = rl.Vector2.init(@round(offset_non_rounded.x), @round(offset_non_rounded.y));
+            rl.drawTextEx(v.font, "Home", topleft.add(offset), @round(dims.height * scale), 0, color);
+        } else {
+            const offset_non_rounded = size.subtract(text_dims).scale(0.5);
+            const offset = rl.Vector2.init(@round(offset_non_rounded.x), @round(offset_non_rounded.y));
+            std.debug.print("a", .{});
+            rl.drawTextEx(v.font, "Home", topleft.add(offset), @round(dims.height), 0, color);
+        }
+        return;
+    }
     const rec = v.font.recs[@intCast(rl.getGlyphIndex(v.font, @intCast(cp)))];
     const scale = dims.height / @as(f32, @floatFromInt(v.font.baseSize));
 
