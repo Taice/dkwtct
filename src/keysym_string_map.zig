@@ -1,6 +1,7 @@
 const std = @import("std");
 
 pub const keysym_string_map = std.StaticStringMap(u21).initComptime(.{
+        .{ "VoidSymbol",                          0      },
         .{ "space",                               32     },
         .{ "exclam",                              33     },
         .{ "quotedbl",                            34     },
