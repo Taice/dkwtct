@@ -48,13 +48,19 @@ pub fn main() !void {
     var variant_box = Textbox.init(gpa);
     defer variant_box.deinit();
 
+    var layer_dropdown = false;
+    // var keymap_dropdown = false;
+
+    var file_text_box = Textbox.init(gpa);
+    defer file_text_box.deinit();
+
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.black);
 
-        const screen_size = rl.Rectangle.init(0, 0, @floatFromInt(rl.getScreenWidth()), @floatFromInt(rl.getScreenHeight()));
+        const screen_size = rl.Rectangle.init(0, 20, @floatFromInt(rl.getScreenWidth()), @floatFromInt(rl.getScreenHeight() - 20));
         try keymap.renderForcedAspectRatio(backend.layout, screen_size, !is_paused);
 
         if (is_paused) {
@@ -75,8 +81,8 @@ pub fn main() !void {
                 is_saving = false;
             }
 
-            _ = try layout_box.render(top);
-            if (try variant_box.render(bottom) and layout_box.text.items.len != 0 and variant_box.text.items.len != 0) {
+            _ = try layout_box.render(top, "layout", if (is_saving) "SAVE" else "LOAD");
+            if (try variant_box.render(bottom, "variant", "") and layout_box.text.items.len != 0 and variant_box.text.items.len != 0) {
                 const layout = root.trim(layout_box.text.items);
                 const variant = root.trim(variant_box.text.items);
 
@@ -155,14 +161,7 @@ pub fn main() !void {
                 }
             }
         }
-        const text = switch (v.selected_layer) {
-            .alt => "alt layer",
-            .alt_shift => "alt-shift layer",
-            .normal => "normal layer",
-            .shift => "shift layer",
-        };
 
-        rl.drawText(text, 0, 0, 20, rlf.fromInt(0x88888888));
         const c = rl.getCharPressed();
         if (c != 0) {
             if (v.selected_button) |button| {
@@ -174,5 +173,64 @@ pub fn main() !void {
                 }
             }
         }
+
+        const layer_text = switch (v.selected_layer) {
+            .alt => "alt layer",
+            .alt_shift => "alt-shift layer",
+            .normal => "normal layer",
+            .shift => "shift layer",
+        };
+
+        const mouse_pos = rl.getMousePosition();
+
+        const layer_button_rect = rl.Rectangle.init(0, 0, 100, 20);
+        _ = rg.button(layer_button_rect, layer_text);
+
+        const layer_button_dropdown_rect = rl.Rectangle.init(0, 20, 100, 80);
+        if (rl.checkCollisionPointRec(mouse_pos, layer_button_rect)) {
+            layer_dropdown = true;
+        } else {
+            if (!rl.checkCollisionPointRec(mouse_pos, layer_button_dropdown_rect)) {
+                layer_dropdown = false;
+            }
+        }
+
+        if (layer_dropdown) {
+            for (&[_]f32{ 20, 40, 60, 80 }, 0..) |y, i| {
+                const layer: Layout.LayerEnum = @enumFromInt(i);
+                const text = switch (layer) {
+                    .alt => "alt layer",
+                    .alt_shift => "alt-shift layer",
+                    .normal => "normal layer",
+                    .shift => "shift layer",
+                };
+                const button_rect = rl.Rectangle.init(0, y, 100, 20);
+                if (rg.button(button_rect, text)) {
+                    v.selected_layer = layer;
+                    layer_dropdown = false;
+                    break;
+                }
+                if (layer == v.selected_layer) {
+                    rl.drawRectangleRec(button_rect, rlf.fromInt(0x00000033));
+                }
+            }
+        }
+
+        // const keymap_button_rect = rl.Rectangle.init(100, 0, 100, 20);
+        // _ = rg.button(keymap_button_rect, "keymap");
+        //
+        // const keymap_button_dropdown_rect = rl.Rectangle.init(100, 20, 100, 40);
+        // if (rl.checkCollisionPointRec(mouse_pos, keymap_button_rect)) {
+        //     keymap_dropdown = true;
+        // } else {
+        //     if (!rl.checkCollisionPointRec(mouse_pos, keymap_button_dropdown_rect)) {
+        //         keymap_dropdown = false;
+        //     }
+        // }
+
+        // if (keymap_dropdown) {
+        //     if (rg.button(rl.Rectangle.init(100, 20, 100, 20), ""))
+        //         rl.drawRectangleRec(layer_button_dropdown_rect, rlf.fromInt(0x00000033));
+        // }
     }
 }

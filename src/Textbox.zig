@@ -1,5 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
+const rlf = @import("raylib_functions.zig");
 
 const v = @import("vars.zig");
 
@@ -19,7 +20,7 @@ pub fn init(gpa: std.mem.Allocator) Textbox {
     };
 }
 
-pub fn render(ts: *Textbox, bounds: rl.Rectangle) !bool {
+pub fn render(ts: *Textbox, bounds: rl.Rectangle, no_text: [:0]const u8, top_text: [:0]const u8) !bool {
     const mpos = rl.getMousePosition();
     if (rl.isMouseButtonPressed(.left)) {
         ts.selected = rl.checkCollisionPointRec(mpos, bounds);
@@ -50,10 +51,23 @@ pub fn render(ts: *Textbox, bounds: rl.Rectangle) !bool {
 
     rl.drawRectangleRec(bounds, color);
 
-    try ts.text.append(ts.gpa, 0);
-    rl.drawTextEx(v.font, @ptrCast(ts.text.items), .init(@round(bounds.x), @round(bounds.y)), @round(bounds.height), 2, rl.Color.black);
-    const w = rl.measureTextEx(v.font, @ptrCast(ts.text.items), @round(bounds.height), 2).x;
-    _ = ts.text.pop();
+    var w: f32 = 0;
+    if (ts.text.items.len == 0) {
+        rl.drawTextEx(v.font, no_text, .init(@round(bounds.x), @round(bounds.y)), @round(bounds.height), 2, rlf.fromInt(0xaaaaaaff));
+    } else {
+        try ts.text.append(ts.gpa, 0);
+        rl.drawTextEx(v.font, @ptrCast(ts.text.items), .init(@round(bounds.x), @round(bounds.y)), @round(bounds.height), 2, rl.Color.black);
+        w = rl.measureTextEx(v.font, @ptrCast(ts.text.items), @round(bounds.height), 2).x;
+        _ = ts.text.pop();
+    }
+
+    if (top_text.len != 0) {
+        const width: f32 = @floatFromInt(rl.measureText(top_text, 20));
+        const diff = bounds.width - width;
+        const topleft = rl.Vector2.init(@round(bounds.x + diff / 2.0), bounds.y - 10);
+        rl.drawRectangleRec(.init(topleft.x - 2, topleft.y - 1, width + 4, 20), .gray);
+        rl.drawTextEx(try rl.getFontDefault(), top_text, topleft, 20, 2, .black);
+    }
 
     if (ts.selected) {
         if (((try std.time.Instant.now()).since(v.program_start) / (std.time.ns_per_s / 2)) % 2 == 0)
