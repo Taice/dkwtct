@@ -136,7 +136,7 @@ pub fn format(ts: Keymap, writer: *std.Io.Writer) std.Io.Writer.Error!void {
     }
 }
 
-pub fn renderToFill(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: bool) !void {
+pub fn renderToFill(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: bool, gpa: std.mem.Allocator) !void {
     const gap_size = 0;
 
     const n_gaps_h = 12;
@@ -145,6 +145,12 @@ pub fn renderToFill(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: b
     var coords = rl.Vector2.init(dims.x, dims.y);
 
     const u = rl.Vector2.init(dims.width - n_gaps_h * gap_size, dims.height - n_gaps_v * gap_size).divide(ts.normalized_dimensions);
+    if (rl.isWindowResized()) {
+        const new_size: i32 = @intFromFloat(u.y);
+        if (v.char_font.baseSize != new_size) {
+            try rlf.resizeFont(&v.char_font, new_size, gpa);
+        }
+    }
 
     for (ts.data.items, 0..) |element, i| {
         switch (element) {
@@ -182,7 +188,7 @@ pub fn renderToFill(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: b
     }
 }
 
-pub fn renderForcedAspectRatio(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: bool) !void {
+pub fn renderForcedAspectRatio(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: bool, gpa: std.mem.Allocator) !void {
     const dims_v2 = rl.Vector2.init(dims.width, dims.height);
     const dims_topleft = rl.Vector2.init(dims.x, dims.y);
     const size_vec = dims_v2.divide(ts.normalized_dimensions);
@@ -191,5 +197,5 @@ pub fn renderForcedAspectRatio(ts: *Keymap, layout: *Layout, dims: rl.Rectangle,
     const base_coords = dims_v2.subtract(ts.normalized_dimensions.scale(min)).scale(0.5).add(dims_topleft);
     const size = ts.normalized_dimensions.scale(min);
 
-    try ts.renderToFill(layout, .init(base_coords.x, base_coords.y, size.x, size.y), focused);
+    try ts.renderToFill(layout, .init(base_coords.x, base_coords.y, size.x, size.y), focused, gpa);
 }

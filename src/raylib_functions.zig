@@ -102,6 +102,25 @@ pub fn fontHasCodepoint(f: *rl.Font, codepoint: u21) bool {
     return findCpInGlyphs(f.glyphs[0..@intCast(f.glyphCount)], codepoint);
 }
 
+pub fn resizeFont(f: *rl.Font, new_size: i32, gpa: std.mem.Allocator) !void {
+    const glyph_count: usize = @intCast(f.glyphCount);
+    var cps = gpa.alloc(i32, glyph_count) catch unreachable;
+    defer gpa.free(cps);
+
+    // copy existing codepoints
+    for (cps[0..glyph_count], 0..) |*cp, i| {
+        cp.* = f.glyphs[i].value;
+    }
+
+    rl.unloadFont(f.*);
+    f.* = try rl.loadFontFromMemory(
+        ".ttf",
+        v.mplus_data,
+        new_size,
+        cps,
+    );
+}
+
 pub fn addCodepointToFont(
     f: *rl.Font,
     new_cp: u21,
@@ -119,11 +138,13 @@ pub fn addCodepointToFont(
 
     cps[old_count] = new_cp;
 
+    const fs = f.baseSize;
+
     rl.unloadFont(f.*);
     f.* = try rl.loadFontFromMemory(
         ".ttf",
-        v.font_data,
-        v.fs,
+        v.mplus_data,
+        fs,
         cps,
     );
 }
@@ -133,39 +154,38 @@ pub fn drawCodepointCentered(cp: u21, dims: rl.Rectangle, color: rl.Color) void 
     if (cp == 1) {
         const topleft = rl.Vector2.init(dims.x, dims.y);
         const size = rl.Vector2.init(dims.width, dims.height);
-        const text_dims = rl.Vector2.init(rl.measureTextEx(v.font, "BS", @round(dims.height), 0).x, size.y);
+        const text_dims = rl.Vector2.init(rl.measureTextEx(v.char_font, "BS", @round(dims.height), 0).x, size.y);
         const offset_non_rounded = size.subtract(text_dims).scale(0.5);
         const offset = rl.Vector2.init(@round(offset_non_rounded.x), @round(offset_non_rounded.y));
-        rl.drawTextEx(v.font, "BS", topleft.add(offset), @round(dims.height), 0, color);
+        rl.drawTextEx(v.char_font, "BS", topleft.add(offset), @round(dims.height), 0, color);
         return;
     }
     // home specialization
     if (cp == 2) {
         const topleft = rl.Vector2.init(dims.x, dims.y);
         const size = rl.Vector2.init(dims.width, dims.height);
-        const text_dims = rl.Vector2.init(rl.measureTextEx(v.font, "Home", @round(dims.height), 0).x, size.y);
+        const text_dims = rl.Vector2.init(rl.measureTextEx(v.char_font, "Home", @round(dims.height), 0).x, size.y);
         if (text_dims.x > dims.width) {
             const scale = dims.width / text_dims.x;
 
             const offset_non_rounded = size.subtract(text_dims.scale(scale)).scale(0.5);
             const offset = rl.Vector2.init(@round(offset_non_rounded.x), @round(offset_non_rounded.y));
-            rl.drawTextEx(v.font, "Home", topleft.add(offset), @round(dims.height * scale), 0, color);
+            rl.drawTextEx(v.char_font, "Home", topleft.add(offset), @round(dims.height * scale), 0, color);
         } else {
             const offset_non_rounded = size.subtract(text_dims).scale(0.5);
             const offset = rl.Vector2.init(@round(offset_non_rounded.x), @round(offset_non_rounded.y));
-            std.debug.print("a", .{});
-            rl.drawTextEx(v.font, "Home", topleft.add(offset), @round(dims.height), 0, color);
+            rl.drawTextEx(v.char_font, "Home", topleft.add(offset), @round(dims.height), 0, color);
         }
         return;
     }
-    const rec = v.font.recs[@intCast(rl.getGlyphIndex(v.font, @intCast(cp)))];
-    const scale = dims.height / @as(f32, @floatFromInt(v.font.baseSize));
+    const rec = v.char_font.recs[@intCast(rl.getGlyphIndex(v.char_font, @intCast(cp)))];
+    const scale = dims.height / @as(f32, @floatFromInt(v.char_font.baseSize));
 
     const x_size = scale * rec.width;
 
     const x = (dims.width - x_size) / 2 + dims.x;
 
-    rl.drawTextCodepoint(v.font, cp, .init(@round(x), @round(dims.y)), dims.height, color);
+    rl.drawTextCodepoint(v.char_font, cp, .init(@round(x), @round(dims.y)), @round(dims.height), color);
 }
 
 pub fn addCodepointsToFont(f: *rl.Font, cps: []i32, gpa: Allocator) !void {
@@ -183,7 +203,7 @@ pub fn addCodepointsToFont(f: *rl.Font, cps: []i32, gpa: Allocator) !void {
     }
 
     rl.unloadFont(f.*);
-    f.* = try rl.loadFontFromMemory(".ttf", v.font_data, v.fs, codepoints);
+    f.* = try rl.loadFontFromMemory(".ttf", v.mplus_data, v.fs, codepoints);
 }
 
 pub fn findCpInGlyphs(glyphs: []rl.GlyphInfo, cp: u21) bool {

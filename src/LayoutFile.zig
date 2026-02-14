@@ -1,6 +1,8 @@
 const std = @import("std");
 const root = @import("dkwtct");
 
+const v = @import("vars.zig");
+
 const Layout = @import("Layout.zig");
 const Allocator = std.mem.Allocator;
 
@@ -86,7 +88,7 @@ pub fn loadFromName(layout: []const u8, gpa: Allocator) !LayoutFile {
 }
 
 pub fn loadFromFilePath(file_path: []const u8, gpa: Allocator) !LayoutFile {
-    const file = try std.fs.openFileAbsolute(file_path, .{});
+    const file = try std.fs.cwd().openFile(file_path, .{});
     defer file.close();
     return loadFromFile(file, file_path, gpa);
 }
@@ -143,13 +145,10 @@ pub fn getMatchingPair(string: []const u8, index: usize, comptime chars: []const
     return null;
 }
 
-pub fn getPath(file: []const u8, gpa: std.mem.Allocator) ![]const u8 {
-    const home = try std.process.getEnvVarOwned(gpa, "HOME");
-    defer gpa.free(home);
-
+pub fn getPath(file: []const u8, gpa: std.mem.Allocator) ![]u8 {
     const file_path = try std.fs.path.join(
         gpa,
-        &[_][]const u8{ home, ".config", "xkb", "symbols", file },
+        &[_][]const u8{ v.save_directory.items, file },
     );
     return file_path;
 }

@@ -18,7 +18,6 @@ const Textbox = @import("Textbox.zig");
 const Backend = @import("Backend.zig");
 
 pub const default_keymap_str = @embedFile("keymap.dkwtct");
-pub const font_data = @embedFile("MPLUSRounded1c-Regular.ttf");
 
 pub fn main() !void {
     rl.setConfigFlags(.{ .window_resizable = true });
@@ -29,8 +28,9 @@ pub fn main() !void {
 
     v.program_start = try .now();
 
-    v.font = try rl.loadFontFromMemory(".ttf", font_data, v.fs, null);
-    rl.setTextureFilter(v.font.texture, .bilinear);
+    v.char_font = try rl.loadFontFromMemory(".ttf", v.mplus_data, v.fs, null);
+    v.text_font = try rl.loadFontFromMemory(".ttf", v.notosans_data, 30, null);
+    // rl.setTextureFilter(v.char_font.texture, .bilinear);
 
     const is_debug = @import("builtin").mode == .Debug;
     var debug_alloc = std.heap.DebugAllocator(.{}).init;
@@ -64,11 +64,14 @@ pub fn main() !void {
     var variant_box = Textbox.init(gpa);
     defer variant_box.deinit();
 
+    var directory_box = Textbox.init(gpa);
+    directory_box.text = std.ArrayList(u8).fromOwnedSlice(try config_file.getPreferredSaveDirectory(gpa));
+    defer directory_box.deinit();
+
+    v.save_directory = &directory_box.text;
+
     var layer_dropdown = false;
     // var keymap_dropdown = false;
-
-    var file_text_box = Textbox.init(gpa);
-    defer file_text_box.deinit();
 
     while (!rl.windowShouldClose()) {
         rl.beginDrawing();
@@ -77,27 +80,60 @@ pub fn main() !void {
         rl.clearBackground(rl.Color.black);
 
         const screen_size = rl.Rectangle.init(0, 20, @floatFromInt(rl.getScreenWidth()), @floatFromInt(rl.getScreenHeight() - 20));
-        try keymap.renderForcedAspectRatio(backend.layout, screen_size, !is_paused);
+        try keymap.renderForcedAspectRatio(backend.layout, screen_size, !is_paused, gpa);
 
         if (is_paused) {
-            const pause = rlf.centerRec(screen_size, .init(screen_size.width, 75));
+            const pause = rlf.centerRec(screen_size, .init(screen_size.width * 0.8, 110));
             rl.drawRectangleRec(pause, rl.Color.dark_gray);
             const inner = rlf.innerRec(pause, 5);
 
             const top = rl.Rectangle.init(inner.x, inner.y, inner.width, 30);
-            const bottom = rl.Rectangle.init(inner.x, inner.y + 35, inner.width, 30);
+            const middle = rl.Rectangle.init(inner.x, inner.y + 35, inner.width, 30);
+            const bottom = rl.Rectangle.init(inner.x, inner.y + 70, inner.width, 30);
 
             if (rl.isKeyPressed(.tab)) {
-                layout_box.selected = !layout_box.selected;
-                variant_box.selected = !layout_box.selected;
+                if (rl.isKeyDown(.left_shift)) {
+                    if (directory_box.selected) {
+                        directory_box.selected = false;
+                        layout_box.selected = false;
+                        variant_box.selected = true;
+                    } else if (layout_box.selected) {
+                        directory_box.selected = true;
+                        layout_box.selected = false;
+                        variant_box.selected = false;
+                    } else if (variant_box.selected) {
+                        directory_box.selected = false;
+                        layout_box.selected = true;
+                        variant_box.selected = false;
+                    } else {
+                        directory_box.selected = true;
+                    }
+                } else {
+                    if (directory_box.selected) {
+                        directory_box.selected = false;
+                        layout_box.selected = true;
+                        variant_box.selected = false;
+                    } else if (layout_box.selected) {
+                        directory_box.selected = false;
+                        layout_box.selected = false;
+                        variant_box.selected = true;
+                    } else if (variant_box.selected) {
+                        directory_box.selected = true;
+                        layout_box.selected = false;
+                        variant_box.selected = false;
+                    } else {
+                        directory_box.selected = true;
+                    }
+                }
             }
 
-            if (rl.isKeyPressed(.escape) and !layout_box.selected and !variant_box.selected) {
+            if (rl.isKeyPressed(.escape)) {
                 is_paused = false;
                 is_saving = false;
             }
 
-            _ = try layout_box.render(top, "layout", if (is_saving) "SAVE" else "LOAD");
+            _ = try directory_box.render(top, "directory", if (is_saving) "SAVE" else "LOAD");
+            _ = try layout_box.render(middle, "layout", "");
             if (try variant_box.render(bottom, "variant", "") and layout_box.text.items.len != 0 and variant_box.text.items.len != 0) {
                 const layout = root.trim(layout_box.text.items);
                 const variant = root.trim(variant_box.text.items);
@@ -111,7 +147,7 @@ pub fn main() !void {
                         std.debug.print("Error while importing layout: {any}\n", .{e});
                         break :b;
                     };
-                    try rlf.addLayoutToFont(backend.layout, &v.font, gpa);
+                    try rlf.addLayoutToFont(backend.layout, &v.char_font, gpa);
                 }
                 is_paused = false;
                 is_saving = false;
@@ -124,6 +160,9 @@ pub fn main() !void {
                     v.selected_button = null;
                 } else {
                     is_paused = true;
+                    directory_box.selected = false;
+                    variant_box.selected = false;
+                    layout_box.selected = true;
                 }
             }
             if (keybind("tab")) {
@@ -148,8 +187,8 @@ pub fn main() !void {
                         break :b;
                     };
 
-                    if (!rlf.fontHasCodepoint(&v.font, uc)) {
-                        try rlf.addCodepointToFont(&v.font, uc, std.heap.c_allocator);
+                    if (!rlf.fontHasCodepoint(&v.char_font, uc)) {
+                        try rlf.addCodepointToFont(&v.char_font, uc, std.heap.c_allocator);
                         std.debug.print("{u}\n", .{uc});
                     }
                 } else b: {
@@ -159,7 +198,7 @@ pub fn main() !void {
                     };
                     backend.layout.deinit(gpa);
                     backend.layout.* = ly;
-                    try rlf.addLayoutToFont(&ly, &v.font, std.heap.c_allocator);
+                    try rlf.addLayoutToFont(&ly, &v.char_font, std.heap.c_allocator);
                 }
             }
             if (keybind("ctrl+n")) {
@@ -184,8 +223,8 @@ pub fn main() !void {
                 if (v.selected_button) |button| {
                     v.selected_button = null;
                     try backend.layout.putCharacterOnKey(button, @intCast(c), v.selected_layer);
-                    if (!rlf.fontHasCodepoint(&v.font, @intCast(c))) {
-                        try rlf.addCodepointToFont(&v.font, @intCast(c), gpa);
+                    if (!rlf.fontHasCodepoint(&v.char_font, @intCast(c))) {
+                        try rlf.addCodepointToFont(&v.char_font, @intCast(c), gpa);
                         std.debug.print("{u}\n", .{@as(u21, @intCast(c))});
                     }
                 }
@@ -270,4 +309,6 @@ pub fn main() !void {
         //         rl.drawRectangleRec(layer_button_dropdown_rect, rlf.fromInt(0x00000033));
         // }
     }
+
+    try config_file.saveSaveDirectory(gpa, directory_box.text.items);
 }
