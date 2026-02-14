@@ -28,7 +28,7 @@ pub fn main() !void {
 
     v.program_start = try .now();
 
-    v.char_font = try rl.loadFontFromMemory(".ttf", v.mplus_data, v.fs, null);
+    v.char_font = try rl.loadFontFromMemory(".ttf", v.notosans_data, v.fs, null);
     v.text_font = try rl.loadFontFromMemory(".ttf", v.notosans_data, 30, null);
     // rl.setTextureFilter(v.char_font.texture, .bilinear);
 

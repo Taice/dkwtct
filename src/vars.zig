@@ -4,7 +4,6 @@ const rl = @import("raylib");
 const Layout = @import("Layout.zig");
 
 pub const keymap_str = @embedFile("layout.dkwtct");
-pub const mplus_data = @embedFile("MPLUSRounded1c-Regular.ttf");
 pub const notosans_data = @embedFile("MPLUSRounded1c-Regular.ttf");
 
 pub var char_font: rl.Font = undefined;

@@ -115,7 +115,7 @@ pub fn resizeFont(f: *rl.Font, new_size: i32, gpa: std.mem.Allocator) !void {
     rl.unloadFont(f.*);
     f.* = try rl.loadFontFromMemory(
         ".ttf",
-        v.mplus_data,
+        v.notosans_data,
         new_size,
         cps,
     );
@@ -143,7 +143,7 @@ pub fn addCodepointToFont(
     rl.unloadFont(f.*);
     f.* = try rl.loadFontFromMemory(
         ".ttf",
-        v.mplus_data,
+        v.notosans_data,
         fs,
         cps,
     );
@@ -203,7 +203,7 @@ pub fn addCodepointsToFont(f: *rl.Font, cps: []i32, gpa: Allocator) !void {
     }
 
     rl.unloadFont(f.*);
-    f.* = try rl.loadFontFromMemory(".ttf", v.mplus_data, v.fs, codepoints);
+    f.* = try rl.loadFontFromMemory(".ttf", v.notosans_data, v.fs, codepoints);
 }
 
 pub fn findCpInGlyphs(glyphs: []rl.GlyphInfo, cp: u21) bool {
