@@ -149,7 +149,7 @@ pub fn getPath(file: []const u8, gpa: std.mem.Allocator) ![]const u8 {
 
     const file_path = try std.fs.path.join(
         gpa,
-        &[_][]const u8{ home, ".xkb", "symbols", file },
+        &[_][]const u8{ home, ".config", "xkb", "symbols", file },
     );
     return file_path;
 }
