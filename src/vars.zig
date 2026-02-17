@@ -3,11 +3,14 @@ const rl = @import("raylib");
 
 const Layout = @import("Layout.zig");
 
-pub const keymap_str = @embedFile("layout.dkwtct");
-pub const notosans_data = @embedFile("MPLUSRounded1c-Regular.ttf");
+pub const keymap_str = @embedFile("fonts/layout.dkwtct");
+
+pub const char_font_data = @embedFile("fonts/GoNotoKurrent-Regular.ttf");
+pub const text_font_data = @embedFile("fonts/GoNotoKurrent-Regular.ttf");
 
 pub var char_font: rl.Font = undefined;
 pub var text_font: rl.Font = undefined;
+pub var thai_font: rl.Font = undefined;
 
 pub var selected_layer = Layout.LayerEnum.normal;
 
