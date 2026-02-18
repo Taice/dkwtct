@@ -20,3 +20,5 @@ pub var program_start: std.time.Instant = undefined;
 pub var save_directory: *std.ArrayList(u8) = undefined;
 
 pub const fs = 256;
+
+pub var currently_hovered: bool = false;

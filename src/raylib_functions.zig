@@ -53,7 +53,7 @@ pub fn fromInt(int: u32) rl.Color {
     return rl.Color{ .r = r, .g = g, .b = b, .a = a };
 }
 
-pub fn renderButton(key: ?*Layout.Key, dims: rl.Rectangle, optional_colors: ?Colors, layer: Layout.LayerEnum, focused: bool) ?rl.MouseButton {
+pub fn renderKey(key: ?*Layout.Key, dims: rl.Rectangle, optional_colors: ?Colors, layer: Layout.LayerEnum, focused: bool) ?rl.MouseButton {
     const is_hovering = rl.checkCollisionPointRec(rl.getMousePosition(), dims) and focused;
     const is_held = rl.isMouseButtonDown(.left) or rl.isMouseButtonDown(.right);
 
@@ -91,6 +91,7 @@ pub fn renderButton(key: ?*Layout.Key, dims: rl.Rectangle, optional_colors: ?Col
     }
 
     if (is_hovering) {
+        v.currently_hovered = true;
         for (std.enums.values(rl.MouseButton)) |mbutton| {
             if (rl.isMouseButtonPressed(mbutton)) return mbutton;
         }

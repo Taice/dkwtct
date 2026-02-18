@@ -18,6 +18,15 @@ pub const Key = struct {
     shift: ?u21 = null,
     alt: u21 = 0,
     alt_shift: ?u21 = null,
+
+    pub fn getLayer(ts: *const Key, layer: LayerEnum) ?u21 {
+        return switch (layer) {
+            .normal => ts.normal,
+            .shift => ts.shift,
+            .alt => ts.alt,
+            .alt_shift => ts.alt_shift,
+        };
+    }
 };
 
 name: ?[]const u8,

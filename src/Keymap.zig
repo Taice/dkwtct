@@ -172,7 +172,7 @@ pub fn renderToFill(ts: *Keymap, layout: *Layout, dims: rl.Rectangle, focused: b
                             colors = rlf.Colors.Selected;
                         }
                     }
-                    if (rlf.renderButton(k, button_dims, colors, v.selected_layer, focused)) |btn| {
+                    if (rlf.renderKey(k, button_dims, colors, v.selected_layer, focused)) |btn| {
                         if (btn == .left) {
                             v.selected_button = key.label;
                         }

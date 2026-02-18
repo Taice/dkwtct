@@ -79,6 +79,8 @@ pub fn main() !void {
 
         rl.clearBackground(rl.Color.black);
 
+        v.currently_hovered = false;
+
         const screen_size = rl.Rectangle.init(0, 20, @floatFromInt(rl.getScreenWidth()), @floatFromInt(rl.getScreenHeight() - 20));
         try keymap.renderForcedAspectRatio(backend.layout, screen_size, !is_paused, gpa);
 
@@ -173,8 +175,19 @@ pub fn main() !void {
                 }
             }
             if (keybind("ctrl+c")) {
-                const str = try backend.layout.exportStr();
-                rl.setClipboardText(@ptrCast(str));
+                if (v.selected_button) |btn| {
+                    if (backend.layout.keys.get(btn)) |k| {
+                        if (k.getLayer(v.selected_layer)) |uc| {
+                            var out: [5]u8 = .{0} ** 5;
+                            _ = try std.unicode.utf8Encode(uc, &out);
+                            rl.setClipboardText(@ptrCast(&out));
+                            v.selected_button = null;
+                        }
+                    }
+                } else {
+                    const str = try backend.layout.exportStr();
+                    rl.setClipboardText(@ptrCast(str));
+                }
             }
             if (keybind("ctrl+v")) c: {
                 const cstr = rl.getClipboardText();
@@ -308,6 +321,10 @@ pub fn main() !void {
         //     if (rg.button(rl.Rectangle.init(100, 20, 100, 20), ""))
         //         rl.drawRectangleRec(layer_button_dropdown_rect, rlf.fromInt(0x00000033));
         // }
+
+        if (!v.currently_hovered and rl.isMouseButtonPressed(.left)) {
+            v.selected_button = null;
+        }
     }
 
     try config_file.saveSaveDirectory(gpa, directory_box.text.items);
