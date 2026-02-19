@@ -39,7 +39,7 @@ pub fn saveLayoutNameVariant(ts: *Backend, name: []const u8, variant: []const u8
         switch (e) {
             std.fs.File.OpenError.FileNotFound => {
                 var file = try LayoutFile.init(ts.layout.*, name, gpa);
-                try file.names.append(gpa, variant);
+                try file.names.append(gpa, try gpa.dupe(u8, variant));
                 try file.write(gpa);
 
                 if (ts.current_file) |*f| {

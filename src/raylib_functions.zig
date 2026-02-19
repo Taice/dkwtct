@@ -221,11 +221,22 @@ pub fn addLayoutToFont(layout: *const Layout, f: *rl.Font, gpa: Allocator) !void
     while (iter.next()) |key| {
         {
             const cp = key.normal;
-            if (!fontHasCodepoint(f, cp) and !root.exists(i32, cps.items, cp)) {
+            if (cp != 0 and !fontHasCodepoint(f, cp) and !root.exists(i32, cps.items, cp)) {
                 try cps.append(gpa, cp);
             }
         }
         if (key.shift) |cp| {
+            if (!fontHasCodepoint(f, cp) and !root.exists(i32, cps.items, cp)) {
+                try cps.append(gpa, cp);
+            }
+        }
+        {
+            const cp = key.alt;
+            if (cp != 0 and !fontHasCodepoint(f, cp) and !root.exists(i32, cps.items, cp)) {
+                try cps.append(gpa, cp);
+            }
+        }
+        if (key.alt_shift) |cp| {
             if (!fontHasCodepoint(f, cp) and !root.exists(i32, cps.items, cp)) {
                 try cps.append(gpa, cp);
             }
@@ -280,6 +291,4 @@ pub fn isKeybindPressed(keybind: []const u8) bool {
     return true;
 }
 
-pub fn loadThaiFont() rl.Font {
-
-}
+pub fn loadThaiFont() rl.Font {}
