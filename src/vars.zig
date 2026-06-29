@@ -1,0 +1,25 @@
+pub const keymap_str = @embedFile("fonts/layout.dkwtct");
+
+pub const char_font_data = @embedFile("fonts/GoNotoKurrent-Regular.ttf");
+pub const text_font_data = @embedFile("fonts/GoNotoKurrent-Regular.ttf");
+
+pub var char_font: rl.Font = undefined;
+pub var text_font: rl.Font = undefined;
+pub var thai_font: rl.Font = undefined;
+
+pub var selected_layer = Layout.LayerEnum.normal;
+
+pub var selected_button: ?[]const u8 = null;
+pub var program_start: std.Io.Timestamp = undefined;
+
+pub var save_directory: *std.ArrayList(u8) = undefined;
+
+pub const fs = 256;
+
+pub var currently_hovered: bool = false;
+
+//
+const std = @import("std");
+const rl = @import("raylib");
+
+const Layout = @import("Layout.zig");
