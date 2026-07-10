@@ -1,22 +1,33 @@
-const Backend = @This();
+const AppBackend = @This();
+
+const std = @import("std");
+const dkct = @import("dkwtct");
+
+const Keymap = dkct.Keymap;
+const Layout = dkct.XKBLayout;
+const LayoutFile = dkct.LayoutFile;
+const Textbox = dkct.Textbox;
+
+const Allocator = std.mem.Allocator;
+const Io = std.Io;
 
 selected_button: ?[]const u8 = null,
 selected_shift_layer: bool = false,
 
 paused: bool = false,
-current_file: ?@import("LayoutFile.zig") = null,
+current_file: ?dkct.LayoutFile = null,
 
 layout: *Layout,
 
-pub fn init(gpa: Allocator) !Backend {
-    const backend = Backend{
+pub fn init(gpa: Allocator) !AppBackend {
+    const backend = AppBackend{
         .layout = try gpa.create(Layout),
     };
-    backend.layout.* = .init(gpa, null);
+    backend.layout.* = .init(null);
     return backend;
 }
 
-pub fn deinit(ts: *Backend, gpa: Allocator) void {
+pub fn deinit(ts: *AppBackend, gpa: Allocator) void {
     if (ts.current_file) |*f| {
         f.deinit(gpa);
     } else {
@@ -25,7 +36,7 @@ pub fn deinit(ts: *Backend, gpa: Allocator) void {
     }
 }
 
-pub fn saveLayoutNameVariant(ts: *Backend, io: Io, gpa: Allocator, name: []const u8, variant: []const u8) !void {
+pub fn saveLayoutNameVariant(ts: *AppBackend, io: Io, gpa: Allocator, name: []const u8, variant: []const u8) !void {
     var file = LayoutFile.loadFromName(io, gpa, name) catch |e| {
         switch (e) {
             std.Io.File.OpenError.FileNotFound => {
@@ -78,7 +89,7 @@ const ImportLayoutError = error{
     NoLayout,
 };
 
-pub fn importLayoutNameVariant(ts: *Backend, io: Io, gpa: Allocator, layout_name: []const u8, variant: []const u8) !void {
+pub fn importLayoutNameVariant(ts: *AppBackend, io: Io, gpa: Allocator, layout_name: []const u8, variant: []const u8) !void {
     var file = try LayoutFile.loadFromName(io, gpa, layout_name);
     errdefer file.deinit(gpa);
     var found = false;
@@ -100,11 +111,10 @@ pub fn importLayoutNameVariant(ts: *Backend, io: Io, gpa: Allocator, layout_name
             return;
         }
     }
-    std.debug.print("{any}", .{file});
     return ImportLayoutError.NoLayout;
 }
 
-pub fn resetLayout(ts: *Backend, gpa: Allocator) !void {
+pub fn resetLayout(ts: *AppBackend, gpa: Allocator) !void {
     if (ts.current_file) |*f| {
         f.deinit(gpa);
         ts.layout = try gpa.create(Layout);
@@ -115,18 +125,8 @@ pub fn resetLayout(ts: *Backend, gpa: Allocator) !void {
     ts.layout.* = Layout.init(gpa, null);
 }
 
-pub fn trySavingLayout(ts: *Backend, io: Io, gpa: Allocator) !bool {
+pub fn trySavingLayout(ts: *AppBackend, io: Io, gpa: Allocator) !bool {
     const file = ts.current_file orelse return false;
     try file.write(io, gpa);
     return true;
 }
-
-const std = @import("std");
-
-const Keymap = @import("Keymap.zig");
-const Layout = @import("Layout.zig");
-const LayoutFile = @import("LayoutFile.zig");
-const Textbox = @import("Textbox.zig");
-
-const Allocator = std.mem.Allocator;
-const Io = std.Io;

@@ -1,6 +1,7 @@
 const std = @import("std");
 
 pub const keysym_string_map = std.StaticStringMap(u21).initComptime(.{
+    // zig fmt: off
         .{ "VoidSymbol",                          0      },
         .{ "space",                               32     },
         .{ "exclam",                              33     },
@@ -969,4 +970,5 @@ pub const keysym_string_map = std.StaticStringMap(u21).initComptime(.{
         .{ "OE",                                5052     },
         .{ "oe",                                5053     },
         .{ "Ydiaeresis",                        5054     },
+    // zig fmt: on
 });

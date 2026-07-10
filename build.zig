@@ -28,19 +28,6 @@ pub fn build(b: *std.Build) void {
     // to our consumers. We must give it a name because a Zig package can expose
     // multiple modules and consumers will need to be able to specify which
     // module they want to access.
-    const mod = b.addModule("dkwtct", .{
-        // The root source file is the "entry point" of this module. Users of
-        // this module will only be able to access public declarations contained
-        // in this file, which means that if you have declarations that you
-        // intend to expose to consumers that were defined in other files part
-        // of this module, you will have to make sure to re-export them from
-        // the root file.
-        .root_source_file = b.path("src/root.zig"),
-        // Later on we'll use this module as the root module of a test executable
-        // which requires us to specify a target.
-        .target = target,
-    });
-
     // Here we define an executable. An executable needs to have a root module
     // which needs to expose a `main` function. While we could add a main function
     // to the module defined above, it's sometimes preferable to split business
@@ -57,7 +44,19 @@ pub fn build(b: *std.Build) void {
     //
     // If neither case applies to you, feel free to delete the declaration you
     // don't need and to put everything under a single module.
-    // const libquark = b.dependency("quark", .{}).artifact("quark");
+    const dvui_dep = b.dependency("dvui", .{ .target = target, .optimize = optimize, .backend = .sdl3 });
+
+    const dkwtct_module = b.createModule(.{
+        .root_source_file = b.path("src/root.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "dvui", .module = dvui_dep.module("dvui_sdl3") },
+            .{ .name = "sdl3", .module = dvui_dep.module("sdl3") },
+        },
+    });
+
+    dkwtct_module.addImport("dkwtct", dkwtct_module);
 
     const exe = b.addExecutable(.{
         .name = "dkwtct",
@@ -81,25 +80,12 @@ pub fn build(b: *std.Build) void {
                 // repeated because you are allowed to rename your imports, which
                 // can be extremely useful in case of collisions (which can happen
                 // importing modules from different packages).
-      //           .{ .name = "quark", .module = libquark.root_module },
-                .{ .name = "dkwtct", .module = mod },
+                .{ .name = "dvui", .module = dvui_dep.module("dvui_sdl3") },
+                .{ .name = "sdl3", .module = dvui_dep.module("sdl3") },
+                .{ .name = "dkwtct", .module = dkwtct_module },
             },
         }),
     });
-
-    const raylib_dep = b.dependency("raylib_zig", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const raylib = raylib_dep.module("raylib"); // main raylib module
-    const raygui = raylib_dep.module("raygui"); // raygui module
-    const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
-
-    exe.root_module.linkLibrary(raylib_artifact);
-    //exe.root_module.linkLibrary(libquark);
-    exe.root_module.addImport("raylib", raylib);
-    exe.root_module.addImport("raygui", raygui);
 
     const exe_check = b.addExecutable(.{
         .name = "foo",
@@ -143,13 +129,7 @@ pub fn build(b: *std.Build) void {
     // Creates an executable that will run `test` blocks from the provided module.
     // Here `mod` needs to define a target, which is why earlier we made sure to
     // set the releative field.
-    const mod_tests = b.addTest(.{
-        .root_module = mod,
-    });
-
     // A run step that will run the test executable.
-    const run_mod_tests = b.addRunArtifact(mod_tests);
-
     // Creates an executable that will run `test` blocks from the executable's
     // root module. Note that test executables only test one module at a time,
     // hence why we have to create two separate ones.
@@ -164,7 +144,6 @@ pub fn build(b: *std.Build) void {
     // times and since the two run steps do not depend on one another, this will
     // make the two of them run in parallel.
     const test_step = b.step("test", "Run tests");
-    test_step.dependOn(&run_mod_tests.step);
     test_step.dependOn(&run_exe_tests.step);
 
     // Just like flags, top level steps are also listed in the `--help` menu.

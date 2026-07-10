@@ -1,22 +1,22 @@
 const LayoutFile = @This();
 
+const std = @import("std");
+const dkct = @import("dkwtct");
+
+const util = dkct.util;
+const v = dkct.vars;
+
+const Layout = dkct.RebindStack.XKBLayout;
+
+const Allocator = std.mem.Allocator;
+const Io = std.Io;
+
 layouts: std.ArrayList(Layout) = .empty,
 names: std.ArrayList([]const u8) = .empty,
-file_path: []const u8,
 
 var buf: [12288]u8 = undefined;
 
-pub fn init(layout: Layout, name: []const u8, gpa: Allocator) !LayoutFile {
-    const path = try getPath(name, gpa);
-    defer gpa.free(path);
-    var layouts = std.ArrayList(Layout).empty;
-    try layouts.append(gpa, layout);
-    std.debug.print("path: {s}\n", .{path});
-    return .{
-        .layouts = layouts,
-        .file_path = try gpa.dupe(u8, path),
-    };
-}
+pub const empty = LayoutFile{};
 
 pub fn deinit(ts: *LayoutFile, gpa: Allocator) void {
     for (ts.layouts.items) |*lay| {
@@ -27,21 +27,17 @@ pub fn deinit(ts: *LayoutFile, gpa: Allocator) void {
         gpa.free(name);
     }
     ts.names.deinit(gpa);
-    gpa.free(ts.file_path);
 }
 
-pub fn writeToFile(ts: *const LayoutFile, io: Io, gpa: Allocator, file: Io.File) !void {
-    var str = try ts.exportStr(gpa);
-    defer str.deinit(gpa);
-    return file.writeStreamingAll(io, str.items);
-}
-
-pub fn writeToFilePath(ts: *const LayoutFile, io: Io, gpa: Allocator, file_path: []const u8) !void {
+pub fn writeToFilePath(ts: *const LayoutFile, io: Io, gpa: Allocator, file_path: []const u8, bleed_chars: bool) !void {
     makeDirAll(io, file_path);
     const file = try Io.Dir.createFileAbsolute(io, file_path, .{});
     defer file.close(io);
 
-    return ts.writeToFile(io, gpa, file);
+    const str = try ts.exportStr(gpa, bleed_chars);
+    defer gpa.free(str);
+
+    try file.writeStreamingAll(io, str);
 }
 
 pub fn makeDirAll(io: Io, dir: []const u8) void {
@@ -64,7 +60,7 @@ pub fn loadFromFile(io: Io, gpa: Allocator, file: Io.File, name: []const u8) !La
 
     const owned = try gpa.dupe(u8, name);
 
-    const layouts, const names = try findLayoutsInString(file_data, gpa);
+    const layouts, const names = try loadFromString(file_data, gpa);
     return LayoutFile{
         .layouts = layouts,
         .names = names,
@@ -85,38 +81,41 @@ pub fn loadFromFilePath(io: Io, gpa: Allocator, file_path: []const u8) !LayoutFi
     return loadFromFile(io, gpa, file, file_path);
 }
 
-pub fn exportStr(ts: *const LayoutFile, gpa: Allocator) !std.ArrayList(u8) {
-    var str = std.ArrayList(u8).empty;
-    for (ts.layouts.items) |layout| {
-        const layout_string = try layout.exportStr();
-        try str.appendSlice(gpa, layout_string);
-        try str.append(gpa, '\n');
+pub fn exportStr(ts: *const LayoutFile, gpa: Allocator, bleed_chars: bool) ![]const u8 {
+    var writer = std.Io.Writer.Allocating.init(gpa);
+    defer writer.deinit();
+    for (ts.layouts.items, 0..) |layout, i| {
+        const layout_string = try layout.exportStr(gpa, ts.names.items[i], bleed_chars);
+        defer gpa.free(layout_string);
+        try writer.writer.print("{s}\n", .{layout_string});
     }
-    return str;
+    return writer.toOwnedSlice();
 }
 
-pub fn findLayoutsInString(string: []const u8, gpa: Allocator) !struct { std.ArrayList(Layout), std.ArrayList([]const u8) } {
-    var layouts = std.ArrayList(Layout).empty;
-    var names = std.ArrayList([]const u8).empty;
+pub const LayoutFileParseError = error{NoLayouts};
+pub fn loadFromString(gpa: Allocator, string: []const u8, bleed_chars: bool) !LayoutFile {
+    var lf = LayoutFile.empty;
+    errdefer lf.deinit(gpa);
+
     var i: usize = 0;
     while (i < string.len - 12) : (i += 1) {
         if (std.mem.eql(u8, string[i .. i + 12], "\nxkb_symbols")) {
-            const name = root.getBetween(string[i + 12 ..], "\"\"") orelse continue;
+            const name, _ = util.getBetween(string[i + 12 ..], "\"\"") orelse continue;
             const newline = std.mem.indexOfScalarPos(u8, string, i + 12, '\n') orelse continue;
 
             // can use newline because this function doesn't check the first character and jsut assume that the bracket is somewhere in this line
             const closed_bracket = getMatchingPair(string, newline, "{}") orelse continue;
 
-            var layout = Layout.parse(string[newline..closed_bracket], gpa, name) catch continue;
-            errdefer layout.deinit(gpa);
+            const layout = try Layout.parse(gpa, string[newline..closed_bracket], bleed_chars);
+
             const owned = try gpa.dupe(u8, name);
-            layout.name = owned;
-            try names.append(gpa, owned);
-            try layouts.append(gpa, layout);
+            try lf.names.append(gpa, owned);
+            try lf.layouts.append(gpa, layout);
             i = closed_bracket;
         }
     }
-    return .{ layouts, names };
+    if (lf.layouts.items.len == 0) return LayoutFileParseError.NoLayouts;
+    return lf;
 }
 
 pub fn getMatchingPair(string: []const u8, index: usize, comptime chars: []const u8) ?usize {
@@ -144,13 +143,3 @@ pub fn getPath(file: []const u8, gpa: Allocator) ![]u8 {
     );
     return file_path;
 }
-
-const std = @import("std");
-const root = @import("dkwtct");
-
-const v = @import("vars.zig");
-
-const Layout = @import("Layout.zig");
-
-const Allocator = std.mem.Allocator;
-const Io = std.Io;

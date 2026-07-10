@@ -44,7 +44,7 @@ pub fn parseHexDigit(digit: u8) ?u8 {
     };
 }
 
-pub fn codepointToUnicode(codepoint: u21) [5]u8 {
+pub fn codepointToHexUnicode(codepoint: u21) [5]u8 {
     const x: u16 = @intCast(codepoint & 0xFFFF);
 
     return .{

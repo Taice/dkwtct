@@ -1,27 +1,16 @@
-const std = @import("std");
+pub const dialogs = @import("dialogs.zig");
 
-pub const Allocator = std.mem.Allocator;
+pub const AppBackend = @import("AppBackend.zig");
+pub const Appdata = @import("Appdata.zig");
+pub const RebindStack = @import("RebindStack.zig");
+pub const Savestate = @import("Savestate.zig");
 
-pub fn trim(str: []const u8) []const u8 {
-    return std.mem.trim(u8, str, " \n\t");
-}
-
-pub fn exists(T: type, slice: []T, item: T) bool {
-    return std.mem.indexOfScalar(T, slice, item) != null;
-}
-
-pub fn getBetween(str: []const u8, comptime chars: []const u8) ?[]const u8 {
-    if (chars.len != 2) {
-        @compileError("Chars is supposed to be 2 characters");
-    }
-    if (std.mem.indexOfScalar(u8, str, chars[0])) |a| {
-        if (std.mem.indexOfScalarPos(u8, str, a + 1, chars[1])) |b| {
-            return str[a + 1 .. b];
-        }
-    }
-    return null;
-}
-
-pub fn fatten(cstr: [:0]const u8) []const u8 {
-    return cstr[0..cstr.len];
-}
+pub const config_file = @import("config_file.zig");
+pub const enums = @import("enums.zig");
+pub const keysym_string_map = @import("keysym_string_map.zig");
+pub const per_language_characters = @import("per_language_characters.zig");
+pub const unicode = @import("unicode.zig");
+pub const util = @import("util.zig");
+pub const vars = @import("vars.zig");
+pub const keycode = @import("keycode.zig");
+pub const actions = @import("actions.zig");

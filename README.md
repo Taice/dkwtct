@@ -7,23 +7,35 @@
 - download the binary (or compile with zig build if you have anything other than x86-64)
 
 # USAGE:
+## Layout
+- import an existing xkb layout with the File menu or ctrl+i
 - left click on a key  - input/paste a character on the normal layer (paste using ctrl+v)
-- use tab/shift+tab to cycle between layer
+- cycle between layers with the menu button or ctrl+(1-4)
 - esc to clear the key from the corresponding layer
-- ctrl+shift+s to save layout to specified location <BR>
-note: <BR>
-in the save/load menu the top thing is the layout and the bottom is the variant
-so if your command to load the layout would be: setxkbmap {layout} -variant {variant} you would put those 2 things in the input menu
-- ctrl+s to save layout to the current loaded
-- esc while not clicking anything to import a layout
-## SHORTCUTS
-- ctrl+n - new layout, discards any changes
-- ctrl(+shift)+s - save layout
-- ctrl+v - pastes either a character if a key is selected or a layout if nothing is selected <BR>
-note: <BR>
-the layout is sanity checked so you don't need to be particularly cautious when pasting characters
-- esc - brings up the load menu
-- ctrl+c copies the current layout to clipboard with either the name its saved as or "layout" if you haven't given it a name yet
+- ctrl(+shift)+s or File->save to save dkwtct layout to specified location(this is not the same as exporting!)
+- bleed chars option - whether to bleed characters from the normal layer to the shift layer if nothing is already on it
 
-# NOTES
-- the layouts are saved to `~/.xkb/symbols/`, because thats where xkb can find them
+## Rebinds
+- import existing rebinds with the File menu or ctrl+i
+- left click on a key and then press a key on your keyboard to set that rebind
+- right click on a key to bring up a searchable list of keys
+- swap rebinds option - this preserves the layout when changing rebinds but it also swaps rebinds so if you rebind a to d then it rebinds d to a
+
+## I have a layout, what now
+- first i would recommend saving the dkwtct layout somewhere (default path is .config/dkwtct/layouts/) via ctrl(+shift)+s or the File menu
+- after that you can export the xkb layout and rebinds via the File menu or ctrl+e
+- note that you should export your rebinds to your waywall directory cause you're gonna have to import them in your waywall config
+- in your waywall config, replace your `whatever_this_is_called = { ["a"] = "b", ... }` or similar with `whatever_this_is_called = require("{the file you exported the rebinds to}")`
+
+## SHORTCUTS
+- ctrl+e - export the xkb layout and rebinds
+- ctrl+i - import the xkb layout or rebinds
+- ctrl+n - blank slate, discards any changes
+- ctrl(+shift)+s - save layout
+- ctrl+v - pastes a character if a key is selected
+- ctrl+c - copies the character on the selected key
+- ctrl+(1-4) - switch layer
+- ctrl+space - switch between rebinds and layout
+
+# TODO
+- char picker

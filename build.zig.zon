@@ -36,10 +36,14 @@
             .url = "git+https://github.com/raylib-zig/raylib-zig?ref=devel#97be2c7ae646a2f09856604b138c427c0af1b952",
             .hash = "raylib_zig-6.0.0-KE8REDJ4BQBu7lKwYNt6R4j5ywPeS37zqW6zrtjCcRwH",
         },
-//        .quark = .{
- //           .url = "git+https://codeberg.org/pparaxan/quark#5329afb8122353b7d916237a9706026e3e12b1f3",
-  //          .hash = "quark-0.1.0-Uqg3xrwsCQCClc5pQZbuKr-s7pxofSUajk7lCO3T47Dx",
-   //     },
+        .quark = .{
+            .url = "git+https://codeberg.org/pparaxan/quark#5329afb8122353b7d916237a9706026e3e12b1f3",
+            .hash = "quark-0.1.0-Uqg3xrwsCQCClc5pQZbuKr-s7pxofSUajk7lCO3T47Dx",
+        },
+        .dvui = .{
+            .url = "git+https://github.com/david-vanderson/dvui?ref=main#c3921e845f520c0e6dccaf40db687dbe31613e7e",
+            .hash = "dvui-0.5.0-dev-AQFJmQl7-QAtKulhsdqoiNlbmATOiQbkrDNx08_UegP8",
+        },
     },
     .paths = .{
         "build.zig",

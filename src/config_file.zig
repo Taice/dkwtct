@@ -1,30 +1,69 @@
-pub fn getKeymapFile(io: Io, environ: std.process.Environ, gpa: Allocator, default_text: []const u8) !?[]const u8 {
-    const path = try getPath(gpa, environ, "keymap.dkwtct");
-    defer gpa.free(path);
+const std = @import("std");
+const dkct = @import("dkwtct");
 
-    const file = Io.Dir.openFileAbsolute(io, path, .{ .mode = .read_only }) catch |e| {
+const util = dkct.util;
+
+const LayoutFile = dkct.LayoutFile;
+
+const Allocator = std.mem.Allocator;
+const Io = std.Io;
+
+pub var arena: std.heap.ArenaAllocator = undefined;
+
+pub var config_dir: []const u8 = "";
+pub var dkwtct_config_dir: []const u8 = "";
+pub var layouts_dir: []const u8 = "";
+pub var keymaps_dir: []const u8 = "";
+pub var savestate_path: []const u8 = "";
+pub var xkb_dir: []const u8 = "";
+pub var waywall_dir: []const u8 = "";
+pub var current_layout_file: []const u8 = "";
+
+pub fn initRelevantThings(io: Io, backing_alloc: Allocator, environ: std.process.Environ) !void {
+    arena = .init(backing_alloc);
+    const gpa = arena.allocator();
+
+    config_dir = try getConfigDir(gpa, environ);
+    dkwtct_config_dir = try getDkwtctConfigPath(gpa);
+    layouts_dir = try getPath(gpa, "layouts/");
+    keymaps_dir = try getPath(gpa, "keymaps/");
+    savestate_path = try getPath(gpa, "savestate");
+    xkb_dir = try std.fs.path.join(gpa, &.{ config_dir, "xkb/symbols/" });
+    waywall_dir = try std.fs.path.join(gpa, &.{ config_dir, "waywall/" });
+    current_layout_file = try std.fs.path.join(gpa, &.{ dkwtct_config_dir, "cached_layout" });
+
+    util.makeDirAll(io, layouts_dir);
+    util.makeDirAll(io, keymaps_dir);
+}
+
+pub fn deinitRelevantThings() void {
+    arena.deinit();
+}
+
+pub fn getConfigDir(gpa: Allocator, environ: std.process.Environ) ![]const u8 {
+    const xdg_config_home = environ.getAlloc(gpa, "XDG_CONFIG_HOME") catch |e| {
         switch (e) {
-            Io.File.OpenError.FileNotFound => {
-                makeDirAll(io, path);
-                const file = try Io.Dir.createFileAbsolute(io, path, .{});
-                var write_buf: [100]u8 = undefined;
-                var writer = file.writer(io, &write_buf);
-                try writer.interface.writeAll(default_text);
-                return null;
+            error.EnvironmentVariableMissing => {
+                const home = try environ.getAlloc(gpa, "HOME");
+                defer gpa.free(home);
+                const path = try std.fs.path.join(gpa, &.{ home, ".config" });
+                return path;
             },
             else => return e,
         }
     };
-    return try readFileAll(io, gpa, file);
+    return xdg_config_home;
 }
 
-pub fn getPath(gpa: Allocator, environ: std.process.Environ, file: []const u8) ![]const u8 {
-    const home = try environ.getAlloc(gpa, "HOME");
-    defer gpa.free(home);
+pub fn getDkwtctConfigPath(gpa: Allocator) ![]const u8 {
+    const dkwtct_dir = try std.fs.path.join(gpa, &.{ config_dir, "dkwtct" });
+    return dkwtct_dir;
+}
 
+pub fn getPath(gpa: Allocator, file: []const u8) ![]const u8 {
     const file_path = try std.fs.path.join(
         gpa,
-        &[_][]const u8{ home, ".config", "dkwtct", file },
+        &[_][]const u8{ dkwtct_config_dir, file },
     );
     return file_path;
 }
@@ -60,6 +99,8 @@ pub fn getPreferredSaveDirectory(io: Io, gpa: Allocator, environ: std.process.En
         switch (e) {
             Io.File.OpenError.FileNotFound => {
                 const file = try Io.Dir.createFileAbsolute(io, file_path, .{});
+                defer file.close(io);
+
                 const default_dir = try defaultPath(gpa, environ);
                 try file.writeStreamingAll(io, default_dir);
                 return default_dir;
@@ -84,12 +125,3 @@ pub fn saveSaveDirectory(io: Io, gpa: Allocator, environ: std.process.Environ, s
 
     try file.writeStreamingAll(io, save_dir);
 }
-
-//
-const std = @import("std");
-
-const LayoutFile = @import("LayoutFile.zig");
-const makeDirAll = @import("LayoutFile.zig").makeDirAll;
-
-const Allocator = std.mem.Allocator;
-const Io = std.Io;
