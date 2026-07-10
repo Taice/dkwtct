@@ -56,7 +56,7 @@ pub fn main(init: std.process.Init) !void {
         .size = .{ .w = 800.0, .h = 600.0 },
         .min_size = .{ .w = 250.0, .h = 350.0 },
         .vsync = true,
-        .title = "DVUI SDL Standalone Example",
+        .title = "Dkwtct",
     });
     defer backend.deinit();
 
