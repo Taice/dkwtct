@@ -50,7 +50,7 @@ pub fn parseLua(gpa: Allocator, str: []const u8) !Rebinds {
 
         const key_str = tokens.next() orelse continue;
         var value_str = tokens.next() orelse return ParseError.NoValue;
-        value_str.len -= 1;
+        if (value_str.len > 0 and value_str[value_str.len - 1] == ',') value_str.len -= 1;
 
         if (tokens.next() != null) {
             return ParseError.TooManyTokens;
