@@ -4,7 +4,9 @@
 - primarily made with focus on mcsr but can be used for other purposes aswell
 
 # SETUP:
-- download the binary (or compile with zig build if you have anything other than x86-64)
+- download the ReleaseSmall binary (or compile with zig build if you have anything other than x86-64)
+- NOTE:
+- if there is any bug you want to report like crashes or unexpected behaviour please try downloading the debug binary instead and see what it outputs
 
 # USAGE:
 ## Layout
