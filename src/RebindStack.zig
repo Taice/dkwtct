@@ -132,7 +132,9 @@ pub fn draw(
 
     const keyboard_normal = ts.keymap.getNormalizedDims();
 
-    const keyboard_portion = dvui.Size{ .w = whole.w * 0.80, .h = whole.h };
+    const w = keyboard_normal.w + 4;
+    const keyboard_portion_scale = keyboard_normal.w / w;
+    const keyboard_portion = dvui.Size{ .w = whole.w * keyboard_portion_scale, .h = whole.h };
 
     const keyboard_box = dvui.box(@src(), .{}, .{
         .min_size_content = keyboard_portion,

@@ -17,7 +17,7 @@ pub fn exportDialog(io: std.Io, gpa: std.mem.Allocator, ctx: *Appdata, menu_bool
     const savestate = &ctx.savestate;
     const export_data = &savestate.export_data;
 
-    const fw = dvui.floatingWindow(@src(), .{}, .{});
+    const fw = dvui.floatingWindow(@src(), .{ .resize = .none }, .{});
     defer fw.deinit();
 
     fw.autoSize();

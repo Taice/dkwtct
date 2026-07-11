@@ -87,7 +87,6 @@ pub fn parse(gpa: Allocator, str: []const u8, bleed_chars: bool) !XKBLayout {
     errdefer ts.deinit(gpa);
     var split_iter = std.mem.splitScalar(u8, str, '\n');
 
-    var changed = false;
     while (split_iter.next()) |line| {
         const trimmed = util.trim(line);
         if (trimmed.len < 4) continue;
@@ -142,10 +141,12 @@ pub fn parse(gpa: Allocator, str: []const u8, bleed_chars: bool) !XKBLayout {
         if (k.shift == 0) k.shift = null;
         if (k.alt_shift == 0) k.alt_shift = null;
 
-        changed = true;
+        if (dkct.keycode.untypeable_keycodes.has(static_key)) {
+            continue;
+        }
         try ts.keys.put(gpa, static_key, k);
     }
-    if (!changed) return LayoutParseError.NoKeys;
+    if (ts.keys.count() == 0) return LayoutParseError.NoKeys;
     return ts;
 }
 
@@ -229,7 +230,7 @@ const PasteCharacterError = error{
 };
 
 pub fn pasteCharacter(ts: *XKBLayout, gpa: Allocator, key: []const u8, text: []const u8, layer: LayerEnum) !u21 {
-    if (try std.unicode.utf8ByteSequenceLength(text[0]) != text.len) return PasteCharacterError.InvalidLength; // ensure single utf-8 codepoint
+    if (text.len == 0 or try std.unicode.utf8ByteSequenceLength(text[0]) != text.len) return PasteCharacterError.InvalidLength; // ensure single utf-8 codepoint
     const uc = std.unicode.utf8Decode(text[0..text.len]) catch return PasteCharacterError.InvalidUnicode;
     try ts.putCharacterOnKey(gpa, key, uc, layer);
     return uc;
