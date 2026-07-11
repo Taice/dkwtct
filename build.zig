@@ -58,8 +58,15 @@ pub fn build(b: *std.Build) void {
 
     dkwtct_module.addImport("dkwtct", dkwtct_module);
 
+    var name_buf: [20]u8 = undefined;
+
     const exe = b.addExecutable(.{
-        .name = "dkwtct",
+        .name = std.fmt.bufPrint(&name_buf, "dkwtct-{s}", .{switch (optimize) {
+            .Debug => "Debug",
+            .ReleaseFast => "ReleaseFast",
+            .ReleaseSafe => "ReleaseSafe",
+            .ReleaseSmall => "ReleaseSmall",
+        }}) catch unreachable,
         .use_llvm = true,
         .root_module = b.createModule(.{
             // b.createModule defines a new module just like b.addModule but,

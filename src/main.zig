@@ -351,9 +351,12 @@ pub fn guiFrame(io: std.Io, ctx: *Appdata) !bool {
 
                             dvui.focusWidget(.zero, null, null);
                         },
-                        .text => |txt| {
+                        .text => |txt| b: {
                             if (txt.action == .value) {
                                 const str = txt.action.value.txt;
+                                if (str.len == 0) {
+                                    break :b;
+                                }
                                 _ = ctx.rebind_stack.dkwtct_layout.layout.pasteCharacter(gpa, keycode, str, ctx.layer) catch |e| {
                                     try dialogs.errorDialog(@src(), "Error putting character on layout: \"{any}\"\n->\"{s}\"", .{ e, str });
                                 };
