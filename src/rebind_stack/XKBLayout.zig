@@ -163,14 +163,19 @@ pub fn keysStr(ts: XKBLayout, gpa: Allocator, bleed: bool) ![]const u8 {
                     try v.setErrorInfo("{s}", .{entry.key_ptr.*});
                     return ExportStrError.InvalidKey;
                 },
-                &unicode.codepointToHexUnicode(entry.value_ptr.normal),
-                &unicode.codepointToHexUnicode(entry.value_ptr.shift orelse if (bleed) entry.value_ptr.normal else 0),
-                &unicode.codepointToHexUnicode(entry.value_ptr.alt),
-                &unicode.codepointToHexUnicode(entry.value_ptr.alt_shift orelse if (bleed) entry.value_ptr.alt else 0),
+                cpToXKB(entry.value_ptr.normal),
+                cpToXKB(entry.value_ptr.shift orelse if (bleed) entry.value_ptr.normal else 0),
+                cpToXKB(entry.value_ptr.alt),
+                cpToXKB(entry.value_ptr.alt_shift orelse if (bleed) entry.value_ptr.alt else 0),
             },
         );
     }
     return aw.toOwnedSlice();
+}
+
+pub fn cpToXKB(cp: u21) []const u8 {
+    if (cp == 0) return "VoidSymbol";
+    return &unicode.codepointToHexUnicode(cp);
 }
 
 const ExportStrError = error{
