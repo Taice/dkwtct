@@ -156,6 +156,11 @@ pub fn keysStr(ts: XKBLayout, gpa: Allocator, bleed: bool) ![]const u8 {
 
     var iter = ts.keys.iterator();
     while (iter.next()) |entry| {
+        var b1: [5]u8 = undefined;
+        var b2: [5]u8 = undefined;
+        var b3: [5]u8 = undefined;
+        var b4: [5]u8 = undefined;
+
         try aw.writer.print(
             "    key <{s}> {{ [ {s}, {s}, {s}, {s} ] }};\n",
             .{
@@ -163,19 +168,20 @@ pub fn keysStr(ts: XKBLayout, gpa: Allocator, bleed: bool) ![]const u8 {
                     try v.setErrorInfo("{s}", .{entry.key_ptr.*});
                     return ExportStrError.InvalidKey;
                 },
-                cpToXKB(entry.value_ptr.normal),
-                cpToXKB(entry.value_ptr.shift orelse if (bleed) entry.value_ptr.normal else 0),
-                cpToXKB(entry.value_ptr.alt),
-                cpToXKB(entry.value_ptr.alt_shift orelse if (bleed) entry.value_ptr.alt else 0),
+                cpToXKB(&b1, entry.value_ptr.normal),
+                cpToXKB(&b2, entry.value_ptr.shift orelse if (bleed) entry.value_ptr.normal else 0),
+                cpToXKB(&b3, entry.value_ptr.alt),
+                cpToXKB(&b4, entry.value_ptr.alt_shift orelse if (bleed) entry.value_ptr.alt else 0),
             },
         );
     }
     return aw.toOwnedSlice();
 }
 
-pub fn cpToXKB(cp: u21) []const u8 {
+pub fn cpToXKB(buf: *[5]u8, cp: u21) []const u8 {
     if (cp == 0) return "VoidSymbol";
-    return &unicode.codepointToHexUnicode(cp);
+    unicode.codepointToHexUnicode(buf, cp);
+    return buf;
 }
 
 const ExportStrError = error{

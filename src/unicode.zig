@@ -44,10 +44,10 @@ pub fn parseHexDigit(digit: u8) ?u8 {
     };
 }
 
-pub fn codepointToHexUnicode(codepoint: u21) [5]u8 {
+pub fn codepointToHexUnicode(buf: *[5]u8, codepoint: u21) void {
     const x: u16 = @intCast(codepoint & 0xFFFF);
 
-    return .{
+    buf.* = .{
         'U',
         hexNibble((x >> 12) & 0xF),
         hexNibble((x >> 8) & 0xF),
