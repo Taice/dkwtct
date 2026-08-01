@@ -1075,7 +1075,7 @@ pub const dvui_to_keycode: [std.meta.fields(dvui.enums.Key).len][]const u8 = .{
     "KPENTER",
 
     "ENTER",
-    "ESCAPE",
+    "ESC",
     "TAB",
     "LEFTSHIFT",
     "RIGHTSHIFT",

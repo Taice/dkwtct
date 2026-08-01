@@ -278,9 +278,7 @@ pub fn drawKeyboard(
 
                 const button_opts = try ts.getButtonOpts(k.keycode, tab, layer, bleed_chars);
 
-                if (try keymapButton(@src(), button_opts, size, font, scale, i)) |be| b: {
-                    if (button_opts.grayed) break :b;
-
+                if (try keymapButton(@src(), button_opts, size, font, scale, i)) |be| {
                     button_events = be;
                 }
             },
@@ -361,7 +359,7 @@ fn keymapButton(
 
         .id_extra = id_extra,
     };
-    const init_opts: dvui.ButtonWidget.InitOptions = .{ .grayed = button_opts.grayed, .draw_focus = !button_opts.grayed };
+    const init_opts: dvui.ButtonWidget.InitOptions = .{ .grayed = button_opts.grayed, .draw_focus = !button_opts.disabled };
 
     bw.init(src, init_opts, opts);
 
@@ -447,6 +445,9 @@ fn keymapButton(
 
     bw.drawFocus();
 
+    if (bw.hover) {
+        dvui.cursorSet(.hand);
+    }
     bw.deinit();
 
     if (!focused or (button_events.events.items.len == 0)) return null;

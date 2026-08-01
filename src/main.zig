@@ -125,10 +125,19 @@ pub fn main(init: std.process.Init) !void {
                         util.keyHash("ctrl+b") => ctx.savestate.bleed_chars = !ctx.savestate.bleed_chars,
 
                         util.keyHash("ctrl+n") => {
+                            switch (ctx.tab) {
+                                .layout => {
+                                    ctx.rebind_stack.dkwtct_layout.resetLayout(init.gpa);
+                                },
+                                .rebinds => {
+                                    try ctx.rebind_stack.dkwtct_layout.resetRebinds(init.gpa);
+                                },
+                            }
+                        },
+                        util.keyHash("ctrl+shift+n") => {
                             ctx.rebind_stack.dkwtct_layout.deinit(init.gpa);
                             ctx.rebind_stack.dkwtct_layout = .empty;
                         },
-
                         util.keyHash("ctrl+space") => {
                             if (ctx.tab == .layout) {
                                 ctx.tab = .rebinds;
@@ -302,7 +311,7 @@ pub fn guiFrame(io: std.Io, ctx: *Appdata) !bool {
         switch (ctx.tab) {
             .layout => {
                 if (dvui.button(@src(), "clear layout", .{}, .{})) {
-                    ctx.rebind_stack.dkwtct_layout.clearLayout(gpa);
+                    ctx.rebind_stack.dkwtct_layout.resetLayout(gpa);
                 }
                 _ = dvui.dropdownEnum(@src(), XKBLayout.LayerEnum, .{ .choice = &ctx.layer }, .{}, .{});
                 if (dvui.button(@src(), if (ctx.savestate.bleed_chars) "bleed chars: true" else "bleed chars: false", .{}, .{})) {
@@ -311,7 +320,7 @@ pub fn guiFrame(io: std.Io, ctx: *Appdata) !bool {
             },
             .rebinds => {
                 if (dvui.button(@src(), "clear rebinds", .{}, .{})) {
-                    try ctx.rebind_stack.dkwtct_layout.clearRebinds(gpa);
+                    try ctx.rebind_stack.dkwtct_layout.resetRebinds(gpa);
                 }
                 if (dvui.button(@src(), if (ctx.savestate.swap_rebinds) "swap rebinds: true" else "swap rebinds: false", .{}, .{})) {
                     ctx.savestate.swap_rebinds = !ctx.savestate.swap_rebinds;
@@ -358,7 +367,11 @@ pub fn guiFrame(io: std.Io, ctx: *Appdata) !bool {
                                     break :b;
                                 }
                                 _ = ctx.rebind_stack.dkwtct_layout.layout.pasteCharacter(gpa, keycode, str, ctx.layer) catch |e| {
-                                    try dialogs.errorDialog(@src(), "Error putting character on layout: \"{any}\"\n->\"{s}\"", .{ e, str });
+                                    try dialogs.errorDialog(
+                                        @src(),
+                                        "Error putting character on layout: \"{any}\"\n->\"{s}\"",
+                                        .{ e, str },
+                                    );
                                 };
                             } else {
                                 break :sw;

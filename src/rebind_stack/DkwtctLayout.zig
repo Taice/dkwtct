@@ -27,12 +27,12 @@ pub fn deinit(ts: *DkwtctLayout, gpa: Allocator) void {
     util.optionFree(gpa, ts.file_path);
 }
 
-pub fn clearLayout(ts: *DkwtctLayout, gpa: Allocator) void {
+pub fn resetLayout(ts: *DkwtctLayout, gpa: Allocator) void {
     ts.layout.deinit(gpa);
     ts.layout = .empty;
 }
 
-pub fn clearRebinds(ts: *DkwtctLayout, gpa: Allocator) !void {
+pub fn resetRebinds(ts: *DkwtctLayout, gpa: Allocator) !void {
     var new_layout = XKBLayout.empty;
     try new_layout.keys.ensureTotalCapacity(gpa, ts.layout.keys.count());
     var iter = ts.layout.keys.iterator();
