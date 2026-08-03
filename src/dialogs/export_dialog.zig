@@ -39,7 +39,7 @@ pub fn exportDialog(io: std.Io, gpa: std.mem.Allocator, ctx: *Appdata, menu_bool
         }
     }
     var header_openflag = true;
-    fw.dragAreaSet(dvui.windowHeader("Import", "", &header_openflag));
+    fw.dragAreaSet(dvui.windowHeader("Export", "", &header_openflag));
     if (!header_openflag) {
         util.optionDeinit(gpa, &layout_file);
         menu_bool.* = false;
