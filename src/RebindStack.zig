@@ -118,12 +118,17 @@ const button_border: f32 = 2;
 const button_margin: f32 = 2;
 const button_m_height: f32 = 2.5;
 
+pub const DrawOpts = struct {
+    bleed_chars: bool,
+    display_images: bool,
+};
+
 pub fn draw(
     ts: *const RebindStack,
     src: std.builtin.SourceLocation,
     tab: Tab,
     layer: XKBLayout.LayerEnum,
-    bleed_chars: bool,
+    do: DrawOpts,
 ) !?RelevantButtonEvents {
     const whole = dvui.parentGet().data().contentRect();
 
@@ -141,7 +146,7 @@ pub fn draw(
         .max_size_content = .size(keyboard_portion),
     });
     var scale: f32 = 0;
-    const button_events = try ts.drawKeyboard(@src(), tab, layer, &scale, bleed_chars);
+    const button_events = try ts.drawKeyboard(@src(), tab, layer, &scale, do);
     keyboard_box.deinit();
 
     var font = dvui.Font.find(.{ .family = "GoNotoKurrent" });
@@ -165,7 +170,7 @@ pub fn draw(
         .max_size_content = .size(mouse_size),
     });
     defer mouse_box.deinit();
-    return try ts.drawMouse(@src(), tab, layer, scale, bleed_chars) orelse button_events;
+    return try ts.drawMouse(@src(), tab, layer, scale, do) orelse button_events;
 }
 
 pub fn drawMouse(
@@ -174,7 +179,7 @@ pub fn drawMouse(
     tab: Tab,
     layer: XKBLayout.LayerEnum,
     _scale: ?f32,
-    bleed_chars: bool,
+    do: DrawOpts,
 ) !?RelevantButtonEvents {
     var button_events: ?RelevantButtonEvents = null;
     var font = dvui.Font.find(.{ .family = "GoNotoKurrent" });
@@ -203,29 +208,77 @@ pub fn drawMouse(
 
     blank(@src(), getButtonSize(base_button_size, 0.5, 1, scale), scale, null);
 
-    var opts = try ts.getButtonOpts("M1", tab, layer, bleed_chars);
-    button_events = try keymapButton(@src(), opts, getButtonSize(base_button_size, 1, 1, scale), font, scale, null) orelse button_events;
+    var opts = try ts.getButtonOpts("M1", tab, layer, do.bleed_chars);
+    button_events = try keymapButton(
+        @src(),
+        opts,
+        getButtonSize(base_button_size, 1, 1, scale),
+        font,
+        scale,
+        null,
+        do,
+    ) orelse button_events;
 
-    opts = try ts.getButtonOpts("M3", tab, layer, bleed_chars);
-    button_events = try keymapButton(@src(), opts, getButtonSize(base_button_size, 0.5, 1, scale), font, scale, null) orelse button_events;
+    opts = try ts.getButtonOpts("M3", tab, layer, do.bleed_chars);
+    button_events = try keymapButton(
+        @src(),
+        opts,
+        getButtonSize(base_button_size, 0.5, 1, scale),
+        font,
+        scale,
+        null,
+        do,
+    ) orelse button_events;
 
-    opts = try ts.getButtonOpts("M2", tab, layer, bleed_chars);
-    button_events = try keymapButton(@src(), opts, getButtonSize(base_button_size, 1, 1, scale), font, scale, null) orelse button_events;
+    opts = try ts.getButtonOpts("M2", tab, layer, do.bleed_chars);
+    button_events = try keymapButton(
+        @src(),
+        opts,
+        getButtonSize(base_button_size, 1, 1, scale),
+        font,
+        scale,
+        null,
+        do,
+    ) orelse button_events;
     top_row.deinit();
 
     const hbox = dvui.box(@src(), .{ .dir = .horizontal }, .{});
 
     const left_side = dvui.box(@src(), .{}, .{});
 
-    opts = try ts.getButtonOpts("M5", tab, layer, bleed_chars);
-    button_events = try keymapButton(@src(), opts, getButtonSize(base_button_size, 0.5, 1, scale), font, scale, null) orelse button_events;
+    opts = try ts.getButtonOpts("M5", tab, layer, do.bleed_chars);
+    button_events = try keymapButton(
+        @src(),
+        opts,
+        getButtonSize(base_button_size, 0.5, 1, scale),
+        font,
+        scale,
+        null,
+        do,
+    ) orelse button_events;
 
-    opts = try ts.getButtonOpts("M4", tab, layer, bleed_chars);
-    button_events = try keymapButton(@src(), opts, getButtonSize(base_button_size, 0.5, 1, scale), font, scale, null) orelse button_events;
+    opts = try ts.getButtonOpts("M4", tab, layer, do.bleed_chars);
+    button_events = try keymapButton(
+        @src(),
+        opts,
+        getButtonSize(base_button_size, 0.5, 1, scale),
+        font,
+        scale,
+        null,
+        do,
+    ) orelse button_events;
 
     left_side.deinit();
 
-    _ = try keymapButton(@src(), .{ .keycode = "", .label = "", .disabled = true }, getButtonSize(base_button_size, 2.5, 3, scale), font, scale, null);
+    _ = try keymapButton(
+        @src(),
+        .{ .keycode = "", .label = "", .disabled = true },
+        getButtonSize(base_button_size, 2.5, 3, scale),
+        font,
+        scale,
+        null,
+        do,
+    );
 
     hbox.deinit();
 
@@ -238,7 +291,7 @@ pub fn drawKeyboard(
     tab: Tab,
     layer: XKBLayout.LayerEnum,
     _scale: *f32,
-    bleed_chars: bool,
+    do: DrawOpts,
 ) !?RelevantButtonEvents {
     var button_events: ?RelevantButtonEvents = null;
     var font = dvui.Font.find(.{ .family = "GoNotoKurrent" });
@@ -276,9 +329,9 @@ pub fn drawKeyboard(
                     continue;
                 }
 
-                const button_opts = try ts.getButtonOpts(k.keycode, tab, layer, bleed_chars);
+                const button_opts = try ts.getButtonOpts(k.keycode, tab, layer, do.bleed_chars);
 
-                if (try keymapButton(@src(), button_opts, size, font, scale, i)) |be| {
+                if (try keymapButton(@src(), button_opts, size, font, scale, i, do)) |be| {
                     button_events = be;
                 }
             },
@@ -312,7 +365,56 @@ const spacebar_tvg = b: {
     break :b dvui.svgToTvg(fba.allocator(), @embedFile("assets/spacebar.svg")) catch unreachable;
 };
 
-pub var label_to_icon: std.array_hash_map.String([]const u8) = undefined;
+pub var label_to_tvg: std.array_hash_map.String([]const u8) = undefined;
+pub var label_to_png: std.static_string_map.StaticStringMap([]const u8) = .initComptime(.{
+    .{ "木", @embedFile("assets/icons/oak_wood.png") },
+    .{ "石", @embedFile("assets/icons/stone.png") },
+    .{ "鐵", @embedFile("assets/icons/raw_iron.png") },
+    .{ "金", @embedFile("assets/icons/raw_gold.png") },
+    .{ "剛", @embedFile("assets/icons/diamond.png") },
+
+    .{ "斧", @embedFile("assets/icons/axe.png") },
+    .{ "鍁", @embedFile("assets/icons/shovel.png") },
+    .{ "鎬", @embedFile("assets/icons/pickaxe.png") },
+    .{ "劍", @embedFile("assets/icons/sword.png") },
+    .{ "鋤", @embedFile("assets/icons/hoe.png") },
+
+    .{ "胄", @embedFile("assets/icons/golden_helmet.png") },
+    .{ "首", @embedFile("assets/icons/golden_helmet.png") },
+
+    .{ "窖", @embedFile("assets/icons/trapdoor.png") },
+    .{ "門", @embedFile("assets/icons/door.png") },
+
+    .{ "弓", @embedFile("assets/icons/bow.png") },
+    .{ "床", @embedFile("assets/icons/bed.png") },
+    .{ "復", @embedFile("assets/icons/anchor.png") },
+    .{ "錠", @embedFile("assets/icons/ingot.png") },
+    .{ "桶", @embedFile("assets/icons/bucket.png") },
+    .{ "麵", @embedFile("assets/icons/bread.png") },
+    .{ "材", @embedFile("assets/icons/planks.png") },
+    .{ "鉸", @embedFile("assets/icons/shears.png") },
+    .{ "胡", @embedFile("assets/icons/golden_carrots.png") },
+    .{ "林", @embedFile("assets/icons/golden_apples.png") },
+    .{ "舟", @embedFile("assets/icons/boat.png") },
+    .{ "杆", @embedFile("assets/icons/iron_bars.png") },
+    .{ "炎", @embedFile("assets/icons/blaze_powder.png") },
+    .{ "終", @embedFile("assets/icons/ender_eyes.png") },
+    .{ "焱", @embedFile("assets/icons/nether_bricks.png") },
+    .{ "硄", @embedFile("assets/icons/glowstone.png") },
+    .{ "毛", @embedFile("assets/icons/wool.png") },
+    .{ "棍", @embedFile("assets/icons/sticks.png") },
+    .{ "燧", @embedFile("assets/icons/flint_and_steel.png") },
+    .{ "炸", @embedFile("assets/icons/tnt.png") },
+    .{ "製", @embedFile("assets/icons/crafting_table.png") },
+    .{ "鈕", @embedFile("assets/icons/button.png") },
+    .{ "粒", @embedFile("assets/icons/nuggets.png") },
+    .{ "絆", @embedFile("assets/icons/tripwire_hook.png") },
+    .{ "弩", @embedFile("assets/icons/crossbow.png") },
+    .{ "盾", @embedFile("assets/icons/shield.png") },
+    .{ "礪", @embedFile("assets/icons/grindstone.png") },
+    .{ "漁", @embedFile("assets/icons/fishing_rod.png") },
+});
+
 fn keymapButton(
     src: std.builtin.SourceLocation,
     button_opts: ButtonOpts,
@@ -320,6 +422,7 @@ fn keymapButton(
     font: dvui.Font,
     scale: f32,
     id_extra: ?usize,
+    do: DrawOpts,
 ) !?RelevantButtonEvents {
     const gpa = dvui.currentWindow().arena();
 
@@ -426,15 +529,32 @@ fn keymapButton(
 
     bw.drawBackground();
 
-    if (label_to_icon.get(button_opts.label)) |tvg_data| {
-        dvui.icon(
-            @src(),
-            button_opts.label,
-            tvg_data,
-            .{ .stroke_width = 1 * scale },
-            opts.strip().override(bw.style()).override(.{ .gravity_x = 0.5, .gravity_y = 0.5, .padding = opts.paddingGet().scale(1.0, dvui.Rect) }),
-        );
-    } else {
+    draw: {
+        if (label_to_tvg.get(button_opts.label)) |tvg_data| {
+            dvui.icon(
+                @src(),
+                button_opts.label,
+                tvg_data,
+                .{ .stroke_width = 1 * scale },
+                opts.strip().override(bw.style()).override(.{ .gravity_x = 0.5, .gravity_y = 0.5, .padding = opts.paddingGet().scale(1.0, dvui.Rect) }),
+            );
+            break :draw;
+        }
+
+        if (do.display_images) {
+            if (label_to_png.get(button_opts.label)) |png_data| {
+                _ = dvui.image(
+                    @src(),
+                    .{
+                        .source = .{ .imageFile = .{ .bytes = png_data, .name = "image.png" } },
+                        .shrink = .ratio,
+                    },
+                    opts.strip().override(bw.style()).override(.{ .gravity_x = 0.5, .gravity_y = 0.5, .padding = opts.paddingGet().scale(1.0, dvui.Rect) }),
+                );
+                break :draw;
+            }
+        }
+
         dvui.labelNoFmt(
             @src(),
             button_opts.label,

@@ -52,6 +52,7 @@ pub const ExportData = struct {
 keymap_path: ?[]const u8 = null,
 theme: dkct.enums.Theme = .adwaita_dark,
 bleed_chars: bool = false,
+display_images: bool = true,
 swap_rebinds: bool = true,
 
 import_data: ImportData = .{},
@@ -105,4 +106,11 @@ pub fn saveToPath(ts: *const Savestate, io: std.Io, gpa: Allocator, file_path: [
     defer file.close(io);
 
     try file.writeStreamingAll(io, str);
+}
+
+pub fn drawOpts(ts: *const Savestate) dkct.RebindStack.DrawOpts {
+    return .{
+        .bleed_chars = ts.bleed_chars,
+        .display_images = ts.display_images,
+    };
 }

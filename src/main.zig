@@ -25,16 +25,20 @@ const SDLBackend = @import("sdl3").SDLBackend;
 pub fn main(init: std.process.Init) !void {
     var timer = std.Io.Timestamp.now(init.io, .real);
 
-    dkct.RebindStack.label_to_icon = try .init(
+    dkct.RebindStack.label_to_tvg = try .init(
         init.gpa,
-        &.{" "},
-        &.{try dvui.svgToTvg(init.gpa, @embedFile("assets/spacebar.svg"))},
+        &.{
+            " ",
+        },
+        &.{
+            try dvui.svgToTvg(init.gpa, @embedFile("assets/spacebar.svg")),
+        },
     );
     defer {
-        for (dkct.RebindStack.label_to_icon.values()) |x| {
+        for (dkct.RebindStack.label_to_tvg.values()) |x| {
             init.gpa.free(x);
         }
-        dkct.RebindStack.label_to_icon.deinit(init.gpa);
+        dkct.RebindStack.label_to_tvg.deinit(init.gpa);
     }
 
     v.error_info_gpa = init.gpa;
@@ -317,6 +321,10 @@ pub fn guiFrame(io: std.Io, ctx: *Appdata) !bool {
                 if (dvui.button(@src(), if (ctx.savestate.bleed_chars) "bleed chars: true" else "bleed chars: false", .{}, .{})) {
                     ctx.savestate.bleed_chars = !ctx.savestate.bleed_chars;
                 }
+
+                if (dvui.button(@src(), if (ctx.savestate.display_images) "display images: true" else "display images: false", .{}, .{})) {
+                    ctx.savestate.display_images = !ctx.savestate.display_images;
+                }
             },
             .rebinds => {
                 if (dvui.button(@src(), "clear rebinds", .{}, .{})) {
@@ -329,7 +337,7 @@ pub fn guiFrame(io: std.Io, ctx: *Appdata) !bool {
         }
     }
 
-    if (try ctx.rebind_stack.draw(@src(), ctx.tab, ctx.layer, ctx.savestate.bleed_chars)) |be| {
+    if (try ctx.rebind_stack.draw(@src(), ctx.tab, ctx.layer, ctx.savestate.drawOpts())) |be| {
         for (be.events.items) |evt| {
             switch (ctx.tab) {
                 .layout => {
