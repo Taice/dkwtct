@@ -106,7 +106,7 @@ pub fn loadFromString(gpa: Allocator, string: []const u8, bleed_chars: bool) !La
             // can use newline because this function doesn't check the first character and jsut assume that the bracket is somewhere in this line
             const closed_bracket = getMatchingPair(string, newline, "{}") orelse continue;
 
-            const layout = try Layout.parse(gpa, string[newline..closed_bracket], bleed_chars);
+            const layout = Layout.parse(gpa, string[newline..closed_bracket], bleed_chars) catch continue;
 
             const owned = try gpa.dupe(u8, name);
             try lf.names.append(gpa, owned);

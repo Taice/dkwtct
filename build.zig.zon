@@ -37,8 +37,8 @@
             .hash = "raylib_zig-6.0.0-KE8REDJ4BQBu7lKwYNt6R4j5ywPeS37zqW6zrtjCcRwH",
         },
         .quark = .{
-            .url = "git+https://codeberg.org/pparaxan/quark#5329afb8122353b7d916237a9706026e3e12b1f3",
-            .hash = "quark-0.1.0-Uqg3xrwsCQCClc5pQZbuKr-s7pxofSUajk7lCO3T47Dx",
+            .url = "git+https://codeberg.org/pparaxan/quark?ref=v0.1.0#07744ebec9a2f4c3c9d6146187fb410ba84669f5",
+            .hash = "quark-0.1.0-Uqg3xusVCQCJVyGhdGwDnIPJR52gq3pEvKH_kkIQ0Td9",
         },
         .dvui = .{
             .url = "git+https://github.com/david-vanderson/dvui?ref=main#c3921e845f520c0e6dccaf40db687dbe31613e7e",

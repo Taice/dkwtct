@@ -35,7 +35,11 @@ pub fn makeDirAll(io: Io, dir: []const u8) void {
 
 var buf: [1024]u8 = undefined;
 pub fn readFilePathFull(io: std.Io, gpa: Allocator, file_path: []const u8) ![]u8 {
-    const file = try std.Io.Dir.openFileAbsolute(io, file_path, .{});
+    const file = if (std.fs.path.isAbsolute(file_path))
+        try std.Io.Dir.openFileAbsolute(io, file_path, .{})
+    else
+        try std.Io.Dir.cwd().openFile(io, file_path, .{});
+
     defer file.close(io);
 
     var reader = file.reader(io, &buf);
@@ -46,7 +50,10 @@ pub fn readFilePathFull(io: std.Io, gpa: Allocator, file_path: []const u8) ![]u8
 pub fn writeFilePathFull(io: std.Io, file_path: []const u8, contents: []const u8) !void {
     makeDirAll(io, file_path);
 
-    const file = try Io.Dir.createFileAbsolute(io, file_path, .{});
+    const file = if (std.fs.path.isAbsolute(file_path))
+        try std.Io.Dir.createFileAbsolute(io, file_path, .{})
+    else
+        try std.Io.Dir.cwd().createFile(io, file_path, .{});
     defer file.close(io);
 
     try file.writeStreamingAll(io, contents);
